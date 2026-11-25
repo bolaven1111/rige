@@ -39,11 +39,18 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .dwk{font-size:9.5px;opacity:.85}
 .db{flex:1;padding:7px 6px 6px;overflow:hidden}
 .item{position:relative;padding-left:8px;margin-bottom:7px}
-.dot{position:absolute;left:0;top:5px;width:5px;height:5px;border-radius:50%;background:#B0B0B5}
-.dot.training{background:#2F6BFF}
-.dot.material{background:#F08A24}
-.dot.classwork{background:#34A853}
-.dot.personal{background:#8E7CC3}
+.dot{position:absolute;left:0;top:5px;width:5px;height:5px;border-radius:50%;background:#B8B8BF}
+.dot.p0{background:#E5484D}
+.dot.p1{background:#B8B8BF}
+.dot.p2{background:#D8D8DE}
+.day.today .dot.p0{background:#FFD2D2}
+.day.today .dot.p1{background:rgba(255,255,255,.62)}
+.day.today .dot.p2{background:rgba(255,255,255,.34)}
+.p0tag,.p2tag{display:inline-block;font-size:8px;line-height:10px;font-weight:700;padding:0 3px;border-radius:3px;margin-right:3px;vertical-align:1px}
+.p0tag{color:#C93A3A;background:#FFF0F0}
+.p2tag{color:#8E8E93;background:#F0F0F4}
+.day.today .p0tag{color:#fff;background:rgba(255,255,255,.22)}
+.day.today .p2tag{color:rgba(255,255,255,.72);background:rgba(255,255,255,.14)}
 .tt{display:flex;align-items:baseline;justify-content:space-between;gap:2px;font-size:9.5px;line-height:11px;color:#5B6B8C;margin-bottom:1px;white-space:nowrap}
 .ak{flex:0 0 auto;font-size:9px;line-height:11px;font-weight:500}
 .ak.occur{color:#2F6BFF}
@@ -71,7 +78,8 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .stitle{font-size:17px;font-weight:600}
 .sclose{font-size:15px;color:#1F4FD8;padding:6px}
-textarea,input,select{font-family:inherit;font-size:16px;color:#1C1C1E}
+textarea,input,select{font-family:inherit;font-size:16px;color:#1C1C1E;outline:none}
+textarea:focus,input:focus,select:focus{outline:none;box-shadow:none}
 .pastebox{width:100%;min-height:150px;border:1px solid #E5E5EA;border-radius:14px;padding:12px;background:#FAFAFC;resize:vertical;line-height:1.55}
 .mini{height:38px;padding:0 14px;border-radius:10px;border:1px solid #E5E5EA;background:#fff;color:#1F4FD8;font-size:13px;font-family:inherit}
 .mini.primary{background:#1F4FD8;border-color:#1F4FD8;color:#fff}
@@ -184,7 +192,9 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .backdrop{background:rgba(0,0,0,.18)}
 .sheet{background:var(--bg);border-radius:22px 22px 0 0;box-shadow:0 -10px 36px rgba(20,24,40,.10);padding:8px 16px calc(14px + env(safe-area-inset-bottom));scrollbar-width:none}
 .sheet::-webkit-scrollbar,.scroll::-webkit-scrollbar{display:none}
-.grabber{width:36px;height:4px;background:#D4D4D9;margin:2px auto 8px}
+.grabber{width:36px;height:4px;background:#D4D4D9;margin:2px auto 8px;position:relative;touch-action:none;cursor:grab}
+.grabber::before{content:"";position:absolute;left:-22px;right:-22px;top:-12px;bottom:-12px}
+.grabber:active{background:#AEAEB5}
 .shead{min-height:42px;margin-bottom:8px}
 .stitle{font-size:17px;font-weight:650}
 .sclose{padding:0;color:#6B6B70}
@@ -215,6 +225,8 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .seg{background:#ECECF1;border-radius:12px;padding:3px}
 .seg button{border-radius:9px;min-height:32px}
 .seg button.on{background:#EAF0FF;color:var(--blue);font-weight:600;box-shadow:none}
+.prio-seg button[data-v="0"].on{background:#FFF0F0;color:#C93A3A}
+.prio-seg button[data-v="2"].on{background:#ECECF1;color:#6B6B70}
 .mapbtn{display:inline-flex;align-items:center;gap:3px;background:#EAF0FF;color:var(--blue);border-radius:9px;padding:5px 8px}
 .chunk{background:#ECECF1;border-radius:11px}
 .chunk.on{background:var(--blue)}
@@ -239,8 +251,8 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .quick-item .qtext{flex:1}
 .quick-count{font-size:11px;min-width:20px;height:20px;line-height:20px;text-align:center;border-radius:10px;background:#EAF0FF;color:var(--blue);font-weight:600}
 @keyframes menuIn{from{opacity:0;transform:scale(.94) translateY(-5px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.edge-dragging{transition:none!important;will-change:transform;touch-action:none}
-.edge-settle{transition:transform .22s cubic-bezier(.2,.8,.2,1)!important}
+.edge-dragging{transition:none!important;animation:none!important;will-change:transform;touch-action:none}
+.edge-settle{transition:transform .26s cubic-bezier(.32,.72,0,1)!important;animation:none!important;will-change:transform}
 .version-area{margin:18px 4px 4px;text-align:left}
 .version-btn{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:0;border-radius:11px;background:#EAF0FF;color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.2px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .version-btn:active{transform:scale(.96)}
@@ -265,6 +277,7 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 <script>
 /* ================= PARSER START ================= */
 var OBJ = [
+["研学活动报名","报名"],["新生家长会","家长会"],["家长座谈会","座谈会"],["家长座谈会","家长会"],["研学活动","研学"],["研学","研学"],["教材征订","教材"],["研讨活动","研讨"],["数学研讨","研讨"],["运动会","运动会"],["报到","报到"],["领书","领书"],["报名","报名"],["接龙","接龙"],["证明","证明"],["学分","学分"],["登记表","登记表"],["研修","研修"],["政治学习","政治学习"],["研究课","研究课"],["毕业生登记表","登记表"],["学籍卡","学籍卡"],["家长会回执","回执"],
 ["秋季运动会报名表","报名表"],["运动会报名表","报名表"],["报名表","报名表"],
 ["期中试卷命制","试卷"],["期末试卷","试卷"],["期中试卷","试卷"],["单元试卷","试卷"],["试卷","试卷"],
 ["学生医保回执单","回执"],["医保回执","回执"],["回执单","回执"],["回执","回执"],
@@ -297,7 +310,7 @@ function normalizeText(s){
   s=s.replace(/[\u200B-\u200D\uFEFF]/g,"");
   s=s.replace(/[０-９]/g,function(ch){ return String.fromCharCode(ch.charCodeAt(0)-0xFEE0); });
   s=s.replace(/[Ａ-Ｚａ-ｚ]/g,function(ch){ return String.fromCharCode(ch.charCodeAt(0)-0xFEE0); });
-  return s.replace(/：/g,":").replace(/．/g,".").replace(/／/g,"/").replace(/－/g,"-")
+  return s.replace(/：/g,":").replace(/．/g,".").replace(/／/g,"/").replace(/－/g,"-").replace(/[—–]/g,"-")
     .replace(/[ \t]+/g," ").replace(/ *\n */g,"\n").trim();
 }
 function stripListNo(s){
@@ -370,7 +383,7 @@ function parseDate(str, base){
   }
   m = str.match(/([一二三四五六七八九十\d]+)\s*天(?:后|以后)/);
   if(m) return {date:dayAdd(base,+m[1]||cnNum(m[1])),text:m[0]};
-  var rel=[["大后天",3],["后天",2],["明天",1],["今天",0],["今晚",0],["明晚",1],["昨天",-1],["昨晚",-1],["前天",-2]];
+  var rel=[["大后天",3],["后天",2],["明天",1],["今天",0],["今晚",0],["明早",1],["明晚",1],["昨天",-1],["昨晚",-1],["前天",-2]];
   for(var i=0;i<rel.length;i++){ if(str.indexOf(rel[i][0])>=0) return {date:dayAdd(base,rel[i][1]),text:rel[i][0]}; }
   m = str.match(/(\d{1,2})\s*[日号]/);
   if(m && +m[1]>=1 && +m[1]<=31){
@@ -418,6 +431,7 @@ function parseTime(str, ctxPeriod){
     return pad2(hh)+":"+pad2(mm);
   }
   if(/放学前/.test(str)) return "16:30";
+  if(/离校前/.test(str)) return "16:30";
   if(/下班前/.test(str)) return "17:30";
   m = str.match(/第([一二三四五六七八九十])\s*节\s*(?:课)?\s*(后|结束)?/);
   if(m){
@@ -451,10 +465,18 @@ function cleanPlace(v){
   s=s.replace(/@所有人|@全体成员/g,"");
   s=s.replace(/(?:收到请回复|请回复|收到回复|谢谢配合|谢谢大家).*$/,"");
   s=s.replace(/^(?:地点|地址|会议地点|活动地点)\s*:\s*/,"").trim();
+  s=s.split(/[。！？]/)[0].trim();
+  s=s.split(/(?:参加对象|参会人员|参加人员|主题|内容|议程|备注|费用)\s*:/)[0].trim();
+  var par=s.match(/[（(]([^）)]*(?:楼|室|厅|馆|场|校区|学校)[^）)]*)[）)]/);
+  if(par && par[1]) s=par[1].trim();
+  s=s.split(/(?:参加|出席|签到|开会|集中|领取|领书|上交|提交|报名|缴费|办理|请|扫|二维)/)[0].trim();
   s=s.replace(/^[，,。；;、\s]+/,"").replace(/[，,。；;、\s]+$/,"").trim();
   s=s.split(/(?:时间|备注|对象|内容)\s*:/)[0].trim();
-  s=s.replace(/^(?:在|到|去|前往|抵达|赶到)/,"").trim();
+  s=s.replace(/^(?:在|到|去|前往|抵达|赶到|达)/,"").trim();
   s=s.replace(/^(?:一下|一趟|一次|先|再)\s*/,"").trim();
+  if(/^(?:登记表|材料|回执|报名表|表格|名单|记录|作业|教案|试卷|课件|证明|接龙|指定邮箱|系统|平台|问卷|班主任|老师)$/.test(s)) return "";
+  if(/^\d{1,2}月\d{1,2}[日号]|^\d{4}年|^\d{1,2}:\d{2}/.test(s)) return "";
+  s=s.replace(/[\u4e00-\u9fa5]{1,4}老师处$/,"").trim();
   var cm=s.match(/(.{2,}?)(?:参加|出席|观摩|监考|开会|开教研会|开教研|开家长会|开班会|开年级家长会|开学|开展|组织|值日|上课|教研(?!中心|室|组|所|院|部)|培训(?!中心|学校|学院|基地|部|处)|活动(?!中心|室|厅|馆|场|基地|广场|营)|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|过一遍|过一下|过|交|提交|上交|做|写|复查|体检(?![中心医院])|洗牙|看牙|补牙|取药|买菜|吃饭|接孩子|取快递|保养|办房产证|办停车位|陪|送教|报到|集合|集中|出发|运动会|带队|听课|听[^，,。；;]{0,12}课|和朋友|和家人|玩|拿)/);
   if(cm) s=cm[1].trim();
   s=s.split(/(?:早上|上午|中午|下午|晚上|傍晚|凌晨|今天|明天|后天|昨天|前天|周[一二三四五六日天]|星期[一二三四五六日天]|礼拜[一二三四五六日天]|\d{1,2}[:：]\d{2}|\d{1,2}\s*点|[一二两三四五六七八九十]{1,2}\s*点|之前|以前)/)[0].trim();
@@ -468,26 +490,35 @@ function cleanPlace(v){
 }
 function parsePlace(str){
   str=normalizeText(str).replace(/@所有人|@全体成员/g,"").replace(/收到|看到|遇到|想到|得到/g,"");
-  var m=str.match(/(?:会议地点|活动地点|地点|地址)\s*:\s*([^\n，,。；;]+)/);
+  var m=str.match(/(?:会议地点|活动地点|比赛地点|地点|地址)\s*(?::|是|为)?\s*([^\n，,。；;]+)/);
   if(m){ var p=cleanPlace(m[1]); if(p) return p; }
-  m=str.match(/在([^，,。；;\n]{2,30}?)(?=开会|开教研会|开教研|开家长会|开班会|开年级家长会|开学|开展|组织|值日|参加|出席|集合|集中|举行|进行|报到|上课|教研|培训|活动|升旗|体检|复查|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|过一遍|过一下|过|交|提交|做|写|取药|拿|听课|玩)/);
+  m=str.match(/(?:交|提交|上交|报送|上报|发到|发送到)\s*(?:到|给|至)\s*([^，,。；;\n]{2,30})/);
+  if(m){ var pd=cleanPlace(m[1]); if(pd) return pd; }
+  m=str.match(/(?:送至|送到)\s*([^，,。；;\n]{2,30})/);
+  if(m){ var ps=cleanPlace(m[1]); if(ps) return ps; }
+  m=str.match(/在([^，,。；;\n]{2,30}?)(?=开会|召开|举行|开教研会|开教研|开家长会|开班会|开年级家长会|开学|开展|组织|值日|参加|出席|集合|集中|进行|报到|上课|教研|培训|活动|升旗|体检|复查|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|过一遍|过一下|过|交|提交|做|写|取药|拿|听课|玩)/);
   if(m){ var p2=cleanPlace(m[1]); if(p2) return p2; }
+  m=str.match(/([^，,。；;\n]{2,20}?)(?:召开|举行|开展)(?=[^，,。；;\n]{0,8}(?:家长会|会议|活动|培训|教研))$/);
+  if(m){ var pEvent=cleanPlace(m[1]); if(pEvent) return pEvent; }
   m=str.match(/(?:到|去|前往|抵达|赶到)([^，,。；;\n]{2,30})/);
   if(m){ var p3=cleanPlace(m[1]); if(p3) return p3; }
-  m=str.match(/(?:交|提交|上交|报送|上报|发|发送|发给|上传)(?:到|给|至)?\s*([^，,。；;\n]{2,20}?(?:处|室|科|组|中心|学校|云盘|群|邮箱))(?=[，,。；;\n]|$)/);
+  m=str.match(/(?:集中|集合|签到)\s*(?:在|到|于)?\s*([^，,。；;\n]{2,20})/);
+  if(m){ var pc=cleanPlace(m[1]); if(pc) return pc; }
+  m=str.match(/(?:交|提交|上交|报送|上报|发|发送|发给|上传)(?:到|给|至)?\s*([^，,。；;\n]{2,20}?(?:处|室|科|组|中心|学校|云盘|群|邮箱|股|局|馆|场|楼|校区))(?=[，,。；;\n]|$)/);
   if(m){ var p4=cleanPlace(m[1]); if(p4) return p4; }
   return "";
 }
 function decideAnchor(str, meta){
   str=normalizeText(str);
   meta = meta||{};
-  var attend=/开会|参加|出席|听课|教研|培训|监考|值日|例会|升旗|家访|上课|参会|观摩|研讨|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|到|去|前往|抵达|集合|集中|报到|处理|沟通|组织|聚餐|家长会/.test(str);
+  var attend=/开会|参加|出席|听课|教研|培训|监考|值日|例会|升旗|家访|上课|参会|观摩|研讨|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|到|去|前往|抵达|集合|集中|报到|处理|沟通|组织|聚餐|家长会|运动会|比赛|研学/.test(str);
   var deliver=/交|提交|上交|报送|上报|完成|填报|上传|审核|准备|整理|收齐|收集|统计|批改|打印|复印|领取|取|发|发送|发给|发到/.test(str);
-  var duePre=/(之前|以前|截止|请于|务必在|前完成|前交|前上交|前提交|前上报|前报送|前准备|前收齐)/.test(str) ||
+  var duePre=/(之前|以前|截止|请于|务必在|前完成|前交|前上交|前提交|前上报|前报送|前收齐|前报到|前签到|前集合|前到达)/.test(str) ||
       /(?:\d{1,2}[:：]\d{2}|\d{1,2}\s*点|\d{1,2}月\d{1,2}[日号]?|今天|明天|后天|本周[一二三四五六日天]|下周[一二三四五六日天]|周[一二三四五六日天])\s*前/.test(str);
+  var arrivalDeadline=/(前报到|前签到|前集合|前到达)/.test(str);
   var result=/(表|单|材料|回执|方案|总结|PPT|ppt|名单|记录|试卷|教案|课件|作业|证|清单|统计)/.test(str);
   var prepAction=/(准备|备好|整理|过一遍|过一下|检查|修改|熟悉|练习|背|温习)/.test(str);
-  var due=(duePre?3:0)+(deliver?2:0)+(result?1:0)+(prepAction?4:0);
+  var due=(duePre?(arrivalDeadline?4:3):0)+(deliver?2:0)+(result?1:0)+(prepAction?4:0);
   var occ=(attend?2:0)+((meta.place&&meta.time)?1:0)+(meta.time?1:0);
   if(due>occ) return "due";
   if(occ>due) return "occur";
@@ -503,20 +534,33 @@ function catDot(c){
   c=normCat(c);
   return c==="进修"?"training":c==="材料"?"material":c==="班务"?"classwork":"personal";
 }
+function normPriority(v){
+  v=Number(v);
+  return (v===0||v===1||v===2)?v:1;
+}
+function prioText(t){
+  var p=normPriority(t&&t.priority);
+  return p===0?"P0":p===2?"P2":"";
+}
+function prioClass(t){
+  return "p"+normPriority(t&&t.priority);
+}
 function categoryOf(s){
   s=String(s||"");
-  var cls=/(班主任|班级|班务|班会|各班|作业|家长|家访|家校|家长会|学生|报名表|报名|回执|接种|医保|餐费|校服|保险|升旗|值日|卫生|纪律|运动会|黑板报|班级文化|座位|评优|入队|少先队|成长手册|成绩单|学生证)/;
-  var doc=/(PPT|ppt|课件|Word|word|WPS|wps|Excel|excel|文档|方案|总结|报告(?![厅会])|材料|表格|名单|教案|试卷|命题|命制|作业设计|单元设计|教学设计|案例|论文|心得|反思|计划|简报|台账|微课|视频|海报|展板|美篇|发言稿|主持稿|记录|统计表|情况表|记录表|清单)/;
-  var study=/(教研|研训|培训|进修|听课|听[^，,。；;]{0,10}课|观摩|公开课|课题|磨课|评课|集体备课|研讨|论坛|讲座|外出学习|业务学习|政治学习|参观|访学|送教|支教|监考)/;
+  var cls=/(班主任|班级|班务|班会|各班|作业|家长|家访|家校|家长会|学生|报名表|报名|回执|接种|医保|餐费|校服|保险|升旗|值日|卫生|纪律|运动会|黑板报|班级文化|座位|评优|入队|少先队|成长手册|成绩单|学生证|助学贷款|团组织|团员|心理|测评|教辅|教材费|缴费|报到|注册|新生|开学|课本|书籍|领书|座谈会|毕业确认)/;
+  var doc=/(PPT|ppt|课件|Word|word|WPS|wps|Excel|excel|文档|方案|总结|报告(?![厅会])|材料|表格|名单|教案|试卷|命题|命制|作业设计|单元设计|教学设计|案例|论文|心得|反思|计划|简报|台账|微课|视频|海报|展板|美篇|发言稿|主持稿|记录|统计表|情况表|记录表|清单|录课|听课记录|监考资料|成绩单|登记表|学籍卡|二课|学分)/;
+  var study=/(教研|研训|研修|培训|进修|听课|听[^，,。；;]{0,10}课|观摩|公开课|课题|磨课|评课|集体备课|研讨|论坛|讲座|外出学习|业务学习|政治学习|参观|访学|送教|支教|监考|研究课)/;
   var offsite=/(外校|其他学校|兄弟学校|教育学院|教师发展中心|教师进修学校|区教育局|教育局|教研室|教研中心|会场|礼堂|报告厅|少年宫)/;
   var goSchool=/(到|去|前往|抵达|赶到)[^，,。；;]{0,12}(小学|中学|幼儿园|学院|校区)/;
   var personalStrong=/(旅行|旅游|看病|体检|买菜|做饭|生日|婚礼|聚会|健身|银行|快递|医院|药店|超市|接孩子|送孩子|家庭|私事)/;
   var personalWeak=/(家里|个人|孩子|家人|休息)/;
   var simpleForm=/(报名表|报名|回执|接种|医保|餐费|校服|保险)/;
-  if(personalStrong.test(s)) return "个人";
+  if(/(教材|教辅).*(征订|订购)/.test(s)) return "材料";
+  if(/(?:发送到[^，,。；;]{0,30}邮箱|报送至)/.test(s) && /(报名表|材料|表格|登记表|名单)/.test(s)) return "材料";
+  if(personalStrong.test(s) && !/(家长会|班级|学生|学校|班主任|教研|培训|研学)/.test(s)) return "个人";
   if(doc.test(s) && !(simpleForm.test(s) && !/(PPT|课件|Word|文档|方案|总结|报告|材料|教案|试卷)/.test(s))) return "材料";
-  var classStrong=/(家长会|班会|升旗|值日|运动会|报名表|回执|医保|校服|班主任|班级|班务|各班|作业)/;
-  var studyStrong=/(教研|研训|培训|进修|听课|观摩|公开课|课题|磨课|评课|研讨|论坛|讲座|送教|支教|监考)/;
+  var classStrong=/(家长会|班会|升旗|值日|运动会|报名表|报名|回执|医保|校服|班主任|班级|班务|各班|作业|缴费|教辅|报到|注册|新生|开学|课本|书籍|领书|座谈会|助学贷款|团组织|团员|心理测评|研学)/;
+  var studyStrong=/(教研|研训|培训|进修|听课|观摩|公开课|课题|磨课|评课|研讨|论坛|讲座|送教|支教|监考|研究课|政治学习)/;
   if(classStrong.test(s) && !studyStrong.test(s)) return "班务";
   if(study.test(s) || offsite.test(s) || goSchool.test(s)) return "进修";
   if(cls.test(s)) return "班务";
@@ -542,9 +586,11 @@ function cleanTitleFallback(s){
 }
 function objAllowed(term, s, pos){
   var next=(s||"").slice(pos+term.length,pos+term.length+1);
+  var prev=(s||"").slice(Math.max(0,pos-2),pos);
   if(term==="会议" && /[室厅中心]/.test(next)) return false;
   if(term==="报告" && /[厅会]/.test(next)) return false;
   if(term==="数学课" && next==="件") return false;
+  if(term==="试卷" && /非$/.test(prev)) return false;
   return true;
 }
 function findObj(s){
@@ -572,6 +618,8 @@ function titleOf(s, opts){
   if(opts.noticeTitle!==undefined){
     var t=stripListNo(normalizeText(opts.noticeTitle||"")).replace(/^[【\[]|[】\]]$/g,"").replace(/(\d{4}年)?\d{1,2}月\d{1,2}[日号]/g,"").replace(/通知$/,"").replace(/^关于/,"").replace(/的$/,"").trim();
     t=t.replace(/(活动|会议)$/,"");
+    var nob=findObj(t);
+    if(nob && t.length>12) t=nob[0];
     if(t.length>12) t=t.slice(0,12);
     return t||"通知";
   }
@@ -612,30 +660,37 @@ function cleanSegment(s){
 function isTaskish(s, base){
   s=cleanSegment(s);
   if(!s) return false;
-  if(/(不用|无需|不必|不到校|已经结束|已结束|另行通知|等通知|待定|取消|停课|放假|调休|降温|保暖|添衣|感冒|不再集中|不再举行|不再召开)/.test(s)) return false;
-  if(/(老师|教师|班主任|组长|家长|同学|成员|组员)$/.test(s)) return false;
+  if(/(不用|无需|不必|不到校|已经结束|已结束|取消|停课|放假|调休|降温|保暖|添衣|感冒|不再集中|不再举行|不再召开)/.test(s)) return false;
+  // “另行通知/等通知”只在整句没有可执行内容时才是否定；
+  // “本周五前完成听课记录，提交方式另行通知”仍应留下主任务。
+  if(/(另行通知|等通知|待定)/.test(s) && !/(请于|之前|以前|截止|完成|提交|上交|报名|缴费|准备|收齐)/.test(s)) return false;
+  if(/接龙[\s\S]{0,40}?1[.、]\s*[\u4e00-\u9fa5]{2,4}/.test(s) && !/(截止|请于.*前|之前|以前)/.test(s)) return false;
+  if(/^(请)?(继续)?接龙[。！]?$/.test(s)) return false;
+  if(/^(?:老师|教师|班主任|组长|家长|同学|成员|组员)[:：]?$/.test(s)) return false;
   if(/(原计划|按.*计划|居家学习安排|安排教学)$/.test(s)) return false;
   if(/^【[^】]+】$/.test(s)) return false;
-  if(/(每月|每周|每学期|按规定|根据.*规定|制度|抽查)/.test(s) && !parseDate(s,base).date) return false;
+  if(/(每月|每周|每学期|常态化|按规定|根据.*规定|制度|抽查)/.test(s) && !parseDate(s,base).date) return false;
   if(/(改期|改到|调整到|推迟到|提前到|时间改为)/.test(s) && /(下周|本周|下个月|另行|待定|稍后)/.test(s) && !/(改到|调整到|提前到|推迟到)\s*\d{1,2}月/.test(s)) return false;
   if(/已经|已/.test(s) && /(整理|完成|结束|发出|发到|交过)/.test(s)) return false;
   var d=parseDate(s,base);
   if(d.date && d.date.getTime() < base.getTime()) return false;
   var obj=findObj(s);
-  var action=/(交|提交|上交|报送|上报|收齐|收集|收|准备|备好|迎检|整理|批改|统计|填报|上传|审核|打印|复印|制作|做|写|完成|参加|出席|开会|开家长会|开班会|开课|开展|听课|观摩|教研|培训|监考|值日|家访|发言|汇报|试讲|说课|朗读|阅读|读|念|讲|展示|执教|分享|领|领取|取|拿|接|送|办|体检|复查|买菜|保养|集合|集中|报到|沟通|处理|组织|聚餐|发|发送|发给|发到)/;
+  var action=/(交|提交|上交|报送|上报|收齐|收集|收|准备|备好|迎检|整理|批改|统计|填报|上传|审核|打印|复印|制作|做|写|完成|参加|出席|开会|开家长会|开班会|开课|开展|听课|观摩|教研|培训|监考|值日|家访|发言|汇报|试讲|说课|朗读|阅读|读|念|讲|展示|执教|分享|领|领取|取|拿|接|送|办|体检|复查|买菜|保养|集合|集中|报到|沟通|处理|组织|聚餐|发|发送|发给|发到|报名|缴费|征订|注册|签到|入场|通知|提醒|研究课)/;
   if(/(平时|即可|月检)/.test(s)) return false;
   // “12月25号之前发给施胜婷”这类任务不一定有“材料/报告”等对象词，
   // 但“发给/交给/送到 + 接收人/部门”本身就是可执行动作。
   if(/(发给|发送给|转发给|报给|交给|送到|发到|上传到)\s*[^，,。；;\s]{1,12}/.test(s) && (d.date || parseTime(s))) return true;
-  if(action.test(s) && (obj || /(家长|学生|孩子|班级|各班|校服|尺寸|矛盾|事务|接种证|回执|报名表|教案|材料|PPT|课件|试卷|记录|表格|作业|会议|培训|教研|活动|任务|费用|快递|物业|房产|车|聚餐|视频)/.test(s))) return true;
+  if(action.test(s) && (obj || /(家长|学生|孩子|班级|各班|校服|尺寸|矛盾|事务|接种证|回执|报名表|报名|教案|材料|PPT|课件|试卷|记录|表格|作业|会议|培训|教研|活动|任务|费用|快递|物业|房产|车|聚餐|视频|报告|课题|证明|名单|教辅|教材费|缴费|课后服务)/.test(s))) return true;
   var tm=parseTime(s);
   var hasWhen=tm||d.date;
   var move=/(到|去|前往|抵达|赶到|集合|集中|报到)/.test(s);
   var place=parsePlace(s);
   if(hasWhen && move && place) return true;
-  if(hasWhen && /(前|之前|以前|截止)/.test(s) && /(交|提交|上交|完成|收齐|填|上传|领取|取)/.test(s)) return true;
-  if(hasWhen && /(家长会|班会|会议|培训|教研|升旗|监考|体检|公开课|运动会)/.test(s)) return true;
-  if(action.test(s) && /(教研|培训|听课|观摩|公开课|会议|家长会|升旗|值日|监考|体检|复查|买菜|接孩子|取快递|保养车|办房产证|旅行)/.test(s)) return true;
+  if(hasWhen && /(前|之前|以前|截止)/.test(s) && /(交|提交|上交|完成|收齐|填|上传|领取|取|报名|缴费|征订|注册)/.test(s)) return true;
+  if(hasWhen && /(家长会|班会|会议|培训|教研|升旗|监考|体检|公开课|运动会|政治学习|研究课|学习|报到|座谈会)/.test(s)) return true;
+  if(action.test(s) && /(教研|培训|听课|观摩|公开课|会议|家长会|升旗|值日|监考|体检|复查|买菜|接孩子|取快递|保养车|办房产证|旅行|研究课|政治学习)/.test(s)) return true;
+  // 没写日期、但动作和业务对象都明确的任务保留下来，进入“待安排”。
+  if(action.test(s) && /(二课|学分|助学贷款|毕业确认|团组织|团员|招聘|就业|心理|测评|安全|课程|网络课程)/.test(s)) return true;
   if(/(开会|集中|报到|值日|监考|体检|复查|买菜|接孩子|取快递|保养车|办房产证)/.test(s)) return true;
   return false;
 }
@@ -658,7 +713,7 @@ function parseNotice(t, base, settings){
     return "";
   }
   var timeLine=get(["会议时间","活动时间","时间"]);
-  var place=get(["会议地点","活动地点","地点"]);
+  var place=cleanPlace(get(["会议地点","活动地点","地点"]));
   var obj=get(["参加人员","参会人员","对象"]);  var lines=t.split("\n").map(function(x){return x.trim();}).filter(Boolean);
   var rawTitle="";
   for(var i=0;i<lines.length;i++){
@@ -704,7 +759,7 @@ function parseNotice(t, base, settings){
   var tasks=[{
     id:uid(), title:title, raw:t, note:noteParts.join("\n"), agenda:agenda,
     anchor:anchor, date:d.date?fmtYMD(d.date):null, time:tm, endTime:endTm,
-    place:place, category:cat, tags:[], priority:0, status:"todo", doneAt:null,
+    place:place, category:cat, tags:[], priority:1, status:"todo", doneAt:null,
     leadDays:null, repeat:null, source:"parsed",
     relevant:true, reference:false,
     batchId:"", createdAt:now, updatedAt:now
@@ -748,6 +803,60 @@ function addPrepCompanions(res, rawOverride){
   });
   return out;
 }
+function isLeadToNextTask(s){
+  s=String(s||"");
+  var x=s.replace(/\s/g,"");
+  if(/^(?:为做好|为了|配合做好|报名表下载|按.*(?:要求)?填写|所有(?:材料|人员|教师|班主任)|现需(?:收集|统计|填报)|下面(?:请|是)|本次(?:需要|统计)|报名截止时间|提交截止时间|提交(?:纸质|电子))/ .test(x)) return true;
+  return /^请.*(?:填写|认真准备|准备好|准备|完成|整理)/.test(x) && !/\d|月|日|周|点|前/.test(x);
+}
+function isPrevTaskCompanion(s){
+  s=String(s||"");
+  return /^(?:并|同时|以及|然后|接着|随后|另外|再进行|进行|地点|地址|会议地点|活动地点|本部|全体|请大家|请有.*(?:提前|准备)|请.*(?:准时参加|安排时间参加)|杜绝|确保|活动现场|活动安排|安排)/.test(s.replace(/\s/g,""));
+}
+function absorbTask(a,b){
+  if(!a || !b) return a;
+  a.raw = a.raw ? a.raw+"，"+b.raw : b.raw;
+  if(!a.date) a.date=b.date;
+  if(!a.time) a.time=b.time;
+  if(!a.endTime) a.endTime=b.endTime;
+  if(!a.place) a.place=b.place;
+  if(!a.note && b.note) a.note=b.note;
+  a.category=categoryOf(a.raw);
+  var newTitle=titleOf(a.raw);
+  if(newTitle && newTitle.length>=2) a.title=newTitle;
+  a.updatedAt=Date.now();
+  return a;
+}
+function shouldMergeTasks(prev,x){
+  if(!prev || !x) return false;
+  var s=String(x.raw||"").replace(/\s/g,"");
+  var datesCompatible=!prev.date || !x.date || prev.date===x.date;
+  if(/^(?:地点|地址|会议地点|活动地点)\s*:/.test(s)) return datesCompatible;
+  if(isPrevTaskCompanion(s) && datesCompatible) return true;
+  if(prev.date && x.date && prev.date===x.date && prev.category===x.category &&
+     (!prev.time || !x.time || prev.time===x.time)) return true;
+  return false;
+}
+function mergeTaskFragments(res){
+  // 先处理“为做好……”“现需收集……”这类没有独立日期的引子，并到后面的主任务。
+  var arr=[];
+  for(var i=0;i<res.length;i++){
+    if(isLeadToNextTask(res[i].raw) && i+1<res.length){
+      res[i+1]=absorbTask(res[i],res[i+1]);
+      continue;
+    }
+    arr.push(res[i]);
+  }
+  // 再合并同一事件的说明、地点、参会人员、同日同类的提交动作。
+  var out=[];
+  for(var j=0;j<arr.length;j++){
+    var x=arr[j];
+    if(out.length && shouldMergeTasks(out[out.length-1],x)){
+      out[out.length-1]=absorbTask(out[out.length-1],x);
+    } else out.push(x);
+  }
+  return out;
+}
 function parseMulti(t, base, settings, ctx){
   ctx=ctx||{};
   t=normalizeText(t);
@@ -757,6 +866,23 @@ function parseMulti(t, base, settings, ctx){
   text.split(/\n+/).forEach(function(line){
     line.split(/[。！？]/).forEach(function(sent){ if(sent.trim()) rawSegs.push(sent.trim()); });
   });
+  // 把“10月19日12:35-15:30”这类只有时间、没有动作的句头粘到下一句，
+  // 避免日期段落先被丢掉，后面的任务反而变成“日期待定”。
+  var grouped=[], pending="";
+  rawSegs.forEach(function(seg){
+    seg=seg.trim(); if(!seg) return;
+    var hasWhen=!!(parseDate(seg,base).date || parseTime(seg));
+    var whenOnly=hasWhen && !isTaskish(seg,base);
+    var placeOnly=/^(?:会议地点|活动地点|地点|地址)\s*:/.test(seg) && !isTaskish(seg,base);
+    if(whenOnly || (pending && placeOnly)){
+      pending = pending ? pending+"，"+seg : seg;
+      return;
+    }
+    grouped.push(pending ? pending+"，"+seg : seg);
+    pending="";
+  });
+  if(pending) grouped.push(pending);
+  rawSegs=grouped;
   var tmp=[];
   rawSegs.forEach(function(line){
     line.split(/；|;/).forEach(function(x){ if(x.trim()) tmp.push(x.trim()); });
@@ -781,11 +907,20 @@ function parseMulti(t, base, settings, ctx){
     parts.forEach(function(p){
       var hasDate=!!parseDate(p,base).date;
       var hasTime=!!parseTime(p);
-      // 第二个动作即使没有新的日期/时间，只要自身是完整任务，也要独立成条；
-      // “4点结束”“记得带材料”这类非任务片段仍会并回前一句。
-      var newTaskish=hasDate || isTaskish(p,base);
+      // “请家长安排时间参加”“参会教师9点前报到”是主事件的附属说明，
+      // 不应各生成一张卡；只有当片段自己带时间/日期，或能独立成为一个动作时才拆。
+      var aux=!hasDate && !hasTime && /^(?:请|并|同时|然后|再|务必|准时|按时)/.test(p) && /(参加|出席|准时|到场|到会|安排时间)/.test(p);
+      var arrival=!hasDate && /(报到|签到|集合|入场)/.test(p) && /(参会|参加|全体|教师|人员)/.test(p);
+      var onlyWhen=hasDate && !isTaskish(p,base);
+      if(onlyWhen && cur && isTaskish(cur,base)){
+        cur=cur+"，"+p;
+        curHasWhen=true;
+        return;
+      }
+      var newTaskish=(hasDate || isTaskish(p,base)) && !aux && !arrival;
       if(newTaskish && (curHasWhen || hasDate || (cur && isTaskish(cur,base)))){
         if(cur && isTaskish(cur,base)) out.push(cur);
+        else if(cur) p=cur+"，"+p;
         cur=p;
       } else {
         cur = cur ? cur+"，"+p : p;
@@ -799,7 +934,30 @@ function parseMulti(t, base, settings, ctx){
   var lastPeriod=ctx.period||"";
   out.forEach(function(raw){
     var s=cleanSegment(raw);
-    if(!s || !isTaskish(s,base)) return;
+    if(!s) return;
+    var placeLine=/^(?:会议地点|活动地点|地点|地址)\s*:/.test(s);
+    if(placeLine && res.length){
+      var pLine=parsePlace(s);
+      if(pLine){
+        var prevPlace=res[res.length-1];
+        prevPlace.place=pLine;
+        if(prevPlace.raw.indexOf(s)<0) prevPlace.raw=prevPlace.raw+"，"+s;
+        return;
+      }
+    }
+    if(!isTaskish(s,base)){
+      // 截止日期单独成句时，粘回上一张卡，而不是生成一张只有日期的空卡。
+      var dl=parseDate(s,base), dlt=parseTime(s);
+      if((dl.date || dlt) && /(截止|之前|以前|前)/.test(s) && res.length){
+        var prevDl=res[res.length-1];
+        if(dl.date){ prevDl.date=fmtYMD(dl.date); lastDate=new Date(dl.date.getFullYear(),dl.date.getMonth(),dl.date.getDate()); }
+        if(dlt) prevDl.time=dlt;
+        prevDl.anchor="due";
+        if(prevDl.raw.indexOf(s)<0) prevDl.raw=prevDl.raw+"，"+s;
+        return;
+      }
+      return;
+    }
     var key=s.replace(/\s/g,"");
     if(seen[key]) return;
     seen[key]=1;
@@ -809,26 +967,30 @@ function parseMulti(t, base, settings, ctx){
     var d=parseDate(srcDate,base);
     if(!d.date) d=parseDate(s,base);
     if(!d.date && lastDate) d={date:lastDate,text:""};
-    if(d.date && d.date.getTime()<base.getTime()) return;
-    if(d.date) lastDate=new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate());
     var perMatch=s.match(/(上午|早上|早晨|凌晨|中午|下午|午后|晚上|傍晚|今晚|今夜|明晚|昨晚|夜里|夜间|晚)/);
     if(perMatch) lastPeriod=perMatch[1];
     var tm=parseTime(s,lastPeriod);
+    // “请于7:40前”省略了日期，默认是收到通知当天；带“每天/每周”的周期任务不这样处理。
+    if(!d.date && tm && /(前|之前|以前|截止)/.test(s) && !/(每天|每周|每星期|每学期|工作日)/.test(s)){
+      d={date:new Date(base.getFullYear(),base.getMonth(),base.getDate()),text:""};
+    }
+    if(d.date && d.date.getTime()<base.getTime()) return;
+    if(d.date) lastDate=new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate());
     var endTm=parseTimeRange(s,lastPeriod);
     var place=parsePlace(s);
     var anchor=decideAnchor(s,{place:place,time:tm});
     var cat=categoryOf(s);
     var title=titleOf(s);
-    var pri=/务必|必须|紧急|截止|马上就要|今天/.test(s)?1:0;
     var now=Date.now();
     res.push({
       id:uid(), title:title, raw:s, note:"", agenda:[],
       anchor:anchor, date:d.date?fmtYMD(d.date):null, time:tm, endTime:endTm,
-      place:place, category:cat, tags:[], priority:pri, status:"todo", doneAt:null,
+      place:place, category:cat, tags:[], priority:1, status:"todo", doneAt:null,
       leadDays:null, repeat:null, source:"parsed", relevant:true, reference:false,
       batchId:"", createdAt:now, updatedAt:now
     });
   });
+  res=mergeTaskFragments(res);
   res=addPrepCompanions(res);
   var batch=res.length?uid():"";
   res.forEach(function(x){ x.batchId=batch; });
@@ -989,7 +1151,7 @@ var Store = {
   }
 };
 
-var APP_VERSION = "V1.1";
+var APP_VERSION = "V1.4";
 var state = {
   view:"home",
   quickMenu:false,
@@ -1171,9 +1333,11 @@ function weekInfo(d){
   return {n:n,label:label};
 }
 function sortTasks(a,b){
+  var ap=normPriority(a.priority), bp=normPriority(b.priority);
+  if(ap!==bp) return ap-bp;
   var at=a.time||"99:99", bt=b.time||"99:99";
   if(at!==bt) return at<bt?-1:1;
-  return (b.priority||0)-(a.priority||0);
+  return 0;
 }
 function todayStr(){ return fmtYMD(TODAY); }
 function tasksOn(dateStr){
@@ -1181,8 +1345,10 @@ function tasksOn(dateStr){
 }
 function inboxTasks(){
   var ts=todayStr();
-  var undated=state.tasks.filter(function(t){ return !t.reference && !t.date && t.status!=="done" && t.status!=="dropped"; });
-  var overdue=state.tasks.filter(function(t){ return !t.reference && t.date && t.date<ts && t.status!=="done" && t.status!=="dropped"; });
+  var undated=state.tasks.filter(function(t){ return !t.reference && !t.date && t.status!=="done" && t.status!=="dropped"; })
+    .sort(function(a,b){ return normPriority(a.priority)-normPriority(b.priority) || (a.createdAt||0)-(b.createdAt||0); });
+  var overdue=state.tasks.filter(function(t){ return !t.reference && t.date && t.date<ts && t.status!=="done" && t.status!=="dropped"; })
+    .sort(function(a,b){ return normPriority(a.priority)-normPriority(b.priority) || a.date.localeCompare(b.date) || sortTasks(a,b); });
   var refs=state.tasks.filter(function(t){ return t.reference; });
   return {undated:undated, overdue:overdue, refs:refs};
 }
@@ -1243,12 +1409,13 @@ function dayCard(d, ds, items, isToday, isFuture){
   }else{
     if(isFuture) body+='<div class="futurecount">共 '+undone.length+' 件</div>';
     body+=shown.map(function(t){
-      var cls=catDot(t.category);
+      var cls=prioClass(t);
+      var pt=prioText(t);
       var ak=t.anchor==="occur"?"到场":"截止";
       return '<div class="item" data-act="openTask" data-id="'+esc(t.id)+'">'
         +'<span class="dot '+cls+'"></span>'
         +'<div class="tt"><span>'+esc(t.time||"全天")+'</span><span class="ak '+(t.anchor==="occur"?"occur":"due")+'">'+ak+'</span></div>'
-        +'<div class="ti">'+esc(t.title)+'</div></div>';
+        +'<div class="ti">'+(pt?'<span class="'+(pt==="P0"?"p0tag":"p2tag")+'">'+pt+'</span>':'')+esc(t.title)+'</div></div>';
     }).join("");
   }
   var rest=!isToday&&!isFuture&&isRestDay(ds);
@@ -1287,14 +1454,16 @@ function fitHomeCards(){
 function renderInbox(){
   var ib=inboxTasks();
   function item(t,kind){
+    var pt=prioText(t);
+    var pre=pt?pt+" · ":"";
     var meta="";
     if(kind==="overdue"){
       var days=Math.round((TODAY.getTime()-new Date(t.date+"T00:00:00").getTime())/864e5);
-      meta="已过期 "+days+" 天"+(t.time?" · "+t.time:"")+" · "+normCat(t.category);
+      meta=pre+"已逾期 "+days+" 天"+(t.time?" · "+t.time:"");
     }else if(kind==="undated"){
-      meta="未排日期 · "+normCat(t.category)+(t.place?" · "+t.place:"");
+      meta=pre+"未排日期"+(t.place?" · "+t.place:"");
     }else{
-      meta="可能与你无关 · "+normCat(t.category);
+      meta="可能与你无关";
     }
     return '<div class="tr"><div class="check '+(t.status==="done"?"done":"")+'" data-act="toggle" data-id="'+esc(t.id)+'"></div>'
       +'<div class="trmain">'
@@ -1309,8 +1478,8 @@ function renderInbox(){
   }
   return '<div class="nav"><button class="icon-btn back" data-act="backHome" aria-label="返回主页" title="返回主页">'+icon("back",25)+'</button><span class="nt">收件箱</span></div>'
     +'<div class="scroll">'
+    +(ib.overdue.length?'<div class="sect"><span>逾期</span><span>'+ib.overdue.length+'</span></div>'+ib.overdue.map(function(t){return item(t,"overdue");}).join(""):"")
     +(ib.undated.length?'<div class="sect"><span>待安排</span><span>'+ib.undated.length+'</span></div>'+ib.undated.map(function(t){return item(t,"undated");}).join(""):"")
-    +(ib.overdue.length?'<div class="sect"><span>已过期</span><span>'+ib.overdue.length+'</span></div>'+ib.overdue.map(function(t){return item(t,"overdue");}).join(""):"")
     +(ib.refs.length?'<div class="sect"><span>参考</span><span>'+ib.refs.length+'</span></div>'+ib.refs.map(function(t){return item(t,"refs");}).join(""):"")
     +(!ib.undated.length&&!ib.overdue.length&&!ib.refs.length?'<div class="empty">收件箱是空的<br>粘贴的通知如果没识别出日期，会先落在这里</div>':"")
     +'</div>';
@@ -1388,15 +1557,13 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["右上角合并菜单","收件箱与设置合并为右上角 ⋯，底部不再放两个入口，减少误触；有待处理内容时保留数量角标。"],
-    ["左边缘右滑返回","任务、收件箱和设置等页面可从屏幕左边缘右滑返回；页面跟手移动，滑得不够会弹回。"],
-    ["八日格视觉重绘","统一浅灰背景、白色卡片、克制主蓝和四色分类，保留原有八张卡片的实际尺寸与信息布局。"],
-    ["图标与按钮精简","返回、关闭、删除、粘贴、语音、导入和导出等操作改用统一细线图标或减少文字，关键操作仍保留清晰名称。"],
-    ["任务编辑页分组","标题、日期时间、类型、分类、地点和备注改为分组卡片，保存作为主要操作，备注内容更集中易读。"],
-    ["本地与离线能力保留","规则解析、候选卡选择、本地数据和离线打开均保留，本次更新不会因替换页面文件而清空已有任务。"]
+    ["输入框更干净","粘贴输入框不再显示灰色提示句，点击或聚焦时取消蓝色描边，保留原有浅灰边框和输入区域。"],
+    ["弹层下滑关闭","抓住弹层顶部短灰条向下拖即可关闭；短拖会平滑回弹，长拖或快速下滑会关闭。编辑等弹层会正确返回上一层。"],
+    ["左滑返回更顺滑","收件箱、设置等全页仍从左边缘向右滑返回，松手后会自然滑出或回弹；底部弹层不再误用横向返回。"],
+    ["布局与数据不变","八日格、底部粘贴入口、任务字段和本地数据均未改变，更新不需要重新安装，也不会清空任务。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">界面、导航与手势体验优化</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">输入框与手势体验</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无模型、无云同步。删除主屏图标或清除浏览器网站数据前，请先导出备份。</div>';
 }
@@ -1404,7 +1571,7 @@ function sheetPaste(){
   var d=state.drafts;
   var body='';
   if(!d){
-    body='<textarea class="pastebox" id="pasteInput" placeholder="把学校通知群里的那段话贴进来…">'+esc(state.parseText)+'</textarea>'
+    body='<textarea class="pastebox" id="pasteInput" aria-label="学校通知内容">'+esc(state.parseText)+'</textarea>'
       +'<div class="rowbtns"><button class="mini ghost" data-act="pasteClip">'+icon("clipboard",16)+'粘贴</button><button class="mini primary" data-act="doParse">'+icon("arrow",16)+'解析</button></div>';
   }else{
     var sel=state.draftSel||[];
@@ -1417,7 +1584,7 @@ function sheetPaste(){
         +'<div class="chips">'
         +'<span class="chip blue">'+esc(when)+'</span>'
         +'<span class="chip '+(t.anchor==="due"?"orange":"")+'">'+(t.anchor==="due"?"之前完成":"到时参加")+'</span>'
-        +'<span class="chip">'+esc(normCat(t.category))+'</span>'
+        +(prioText(t)?'<span class="chip '+(normPriority(t.priority)===0?"orange":"grey")+'">'+prioText(t)+'</span>':'')
         +(t.place?'<span class="chip">'+esc(t.place.slice(0,16))+'</span>':'')
         +(t.reference?'<span class="chip grey">可能与你无关</span>':'')
         +'</div>'
@@ -1466,7 +1633,7 @@ function sheetDay(){
   var body='';
   if(!list.length) body='<div class="empty">这天还没有安排</div>';
   else body=list.map(function(t){
-    var meta=(t.time?t.time+" · ":"")+normCat(t.category)+(t.anchor==="due"?" · 截止":"")+(isFuture?" · "+fmtShortDate(t.date):"");
+    var meta=(prioText(t)?prioText(t)+" · ":"")+(t.time?t.time+" · ":"")+(t.anchor==="due"?"截止":"")+(isFuture?" · "+fmtShortDate(t.date):"");
     return '<div class="tr"><div class="check '+(t.status==="done"?"done":"")+'" data-act="toggle" data-id="'+esc(t.id)+'"></div>'
       +'<div class="trmain"><div class="trtitle '+(t.status==="done"?"done":"")+'" data-act="openTask" data-id="'+esc(t.id)+'">'+esc(t.title)+'</div>'
       +'<div class="trmeta">'+esc(meta)+'</div></div></div>';
@@ -1481,8 +1648,11 @@ function sheetEditor(){
     +'<button class="'+(t.anchor==="occur"?"on":"")+'" data-act="setAnchor" data-v="occur">到时参加</button>'
     +'<button class="'+(t.anchor==="due"?"on":"")+'" data-act="setAnchor" data-v="due">之前完成</button>'
     +'</div>';
-  var cats=CATS;
-  var opts=cats.map(function(c){ return '<option value="'+c+'"'+(normCat(t.category)===c?" selected":"")+'>'+c+'</option>'; }).join("");
+  var prio=normPriority(t.priority);
+  var prioBtns=[0,1,2].map(function(v){
+    var lab="P"+v;
+    return '<button class="'+(prio===v?"on":"")+'" data-act="setPriority" data-v="'+v+'" aria-label="'+lab+(v===0?" 最优先":v===2?" 可稍后":" 正常")+'">'+lab+'</button>';
+  }).join("");
   var doneLabel=t.status==="done"?"未完成":"完成";
   return '<div class="grabber"></div><div class="shead editor-head">'
     +'<button class="icon-btn" data-act="editorBack" aria-label="返回" title="返回">'+icon("back",24)+'</button><span class="stitle">任务</span>'
@@ -1495,7 +1665,7 @@ function sheetEditor(){
     +'<div class="field"><label>'+icon("clock",14)+'时间</label><input type="time" id="e_time" value="'+esc(t.time||"")+'"></div>'
     +'</div>'
     +'<div class="field"><label>类型</label>'+seg+'</div>'
-    +'<div class="field"><label>分类</label><select id="e_cat">'+opts+'</select></div>'
+    +'<div class="field"><label>优先级</label><div class="seg prio-seg">'+prioBtns+'</div></div>'
     +'<div class="field"><div class="labrow"><label>'+icon("pin",14)+'地点</label><span class="maplinks">'
     +'<button class="mapbtn" data-act="map" data-app="apple">'+icon("pin",12)+'苹果</button>'
     +'<button class="mapbtn" data-act="map" data-app="baidu">'+icon("pin",12)+'百度</button>'
@@ -1606,7 +1776,7 @@ async function saveManual(){
   var cat=categoryOf(m.text);
   var anchor=decideAnchor(m.text,{place:place,time:tm});
   var now=Date.now();
-  var task={id:uid(),title:title,raw:m.text,note:m.text,agenda:[],anchor:anchor,date:date,time:tm,endTime:endTm,place:place,category:cat,tags:[],priority:0,status:"todo",doneAt:null,leadDays:null,repeat:null,source:"manual",relevant:true,reference:false,batchId:"",createdAt:now,updatedAt:now};
+  var task={id:uid(),title:title,raw:m.text,note:m.text,agenda:[],anchor:anchor,date:date,time:tm,endTime:endTm,place:place,category:cat,tags:[],priority:1,status:"todo",doneAt:null,leadDays:null,repeat:null,source:"manual",relevant:true,reference:false,batchId:"",createdAt:now,updatedAt:now};
   await Store.put(task);
   state.tasks.push(task);
   state.manual=null; state.sheet=null;
@@ -1682,10 +1852,9 @@ async function saveEditor(){
   var title=(document.getElementById("e_title").value||"").trim()||"未命名";
   var date=document.getElementById("e_date").value||null;
   var time=document.getElementById("e_time").value||null;
-  var cat=document.getElementById("e_cat").value;
   var place=(document.getElementById("e_place").value||"").trim();
   var note=document.getElementById("e_note").value||"";
-  var patch={title:title,date:date,time:time,category:cat,place:place,note:note,updatedAt:Date.now()};
+  var patch={title:title,date:date,time:time,priority:normPriority(e.data.priority),place:place,note:note,updatedAt:Date.now()};
   patch.anchor=e.data.anchor;
   patch.status=e.data.status||"todo";
   patch.doneAt=patch.status==="done"?(e.data.doneAt||Date.now()):null;
@@ -1788,38 +1957,70 @@ function goBack(){
   return false;
 }
 
-/* 左边缘交互式返回：跟手、可取消，不在输入框上启动 */
-var Edge={tracking:false,active:false,target:null,startX:0,startY:0,dx:0,dy:0,started:0,suppressUntil:0};
+/* 全页左滑返回；底部弹层只从顶部抓手下滑关闭 */
+var Edge={tracking:false,active:false,settling:false,target:null,startX:0,startY:0,dx:0,dy:0,started:0,suppressUntil:0,settleTimer:null};
+var SheetDrag={tracking:false,active:false,settling:false,target:null,startX:0,startY:0,dx:0,dy:0,started:0,settleTimer:null};
 function currentEdgeTarget(){
-  if(state.sheet) return document.querySelector("#sheet-root .sheet");
-  if(state.view!=="home") return document.getElementById("app");
+  if(!state.sheet && state.view!=="home") return document.getElementById("app");
   return null;
 }
 function clearEdge(commit){
-  var el=Edge.target;
-  if(el){
-    el.classList.remove("edge-dragging");
-    if(commit){
-      el.style.transform="";
-      el.classList.remove("edge-settle");
-    }else{
-      el.classList.add("edge-settle");
-      el.style.transform="translateX(0px)";
-      setTimeout(function(){ if(el){ el.style.transform=""; el.classList.remove("edge-settle"); } },240);
-    }
-  }
+  var el=Edge.target, active=Edge.active;
   Edge.tracking=false; Edge.active=false; Edge.target=null;
+  if(!el || !active) return;
+  Edge.settling=true;
+  el.classList.remove("edge-dragging");
+  el.classList.add("edge-settle");
+  el.style.animation="none";
+  el.style.transform=commit?"translateX(100%)":"translateX(0px)";
+  clearTimeout(Edge.settleTimer);
+  Edge.settleTimer=setTimeout(function(){
+    el.style.transform="";
+    el.classList.remove("edge-settle");
+    Edge.settling=false;
+    if(commit) goBack();
+  },270);
 }
 document.addEventListener("touchstart",function(ev){
-  if(ev.touches.length!==1 || Voice.pressing || state.quickMenu || (!state.sheet && state.view==="home")) return;
+  if(ev.touches.length!==1 || Voice.pressing || state.quickMenu || Edge.settling || SheetDrag.settling) return;
   var t=ev.touches[0];
+  if(state.sheet){
+    var grabber=ev.target.closest?ev.target.closest("#sheet-root .grabber"):null;
+    var sheet=grabber?grabber.closest(".sheet"):null;
+    if(!sheet) return;
+    SheetDrag.tracking=true; SheetDrag.active=false; SheetDrag.target=sheet;
+    SheetDrag.startX=t.clientX; SheetDrag.startY=t.clientY; SheetDrag.dx=0; SheetDrag.dy=0; SheetDrag.started=Date.now();
+    sheet.style.animation="none";
+    var sheetBackdrop=document.querySelector("#sheet-root .backdrop");
+    if(sheetBackdrop) sheetBackdrop.style.transition="none";
+    return;
+  }
   if(t.clientX>24) return;
   if(ev.target.closest && ev.target.closest("input,textarea,select,[contenteditable=true]")) return;
   var target=currentEdgeTarget();
   if(!target) return;
-  Edge={tracking:true,active:false,target:target,startX:t.clientX,startY:t.clientY,dx:0,dy:0,started:Date.now(),suppressUntil:Edge.suppressUntil||0};
+  Edge.tracking=true; Edge.active=false; Edge.target=target;
+  Edge.startX=t.clientX; Edge.startY=t.clientY; Edge.dx=0; Edge.dy=0; Edge.started=Date.now();
 },{passive:true});
 document.addEventListener("touchmove",function(ev){
+  if(SheetDrag.tracking){
+    var st=ev.touches[0]; if(!st) return;
+    var sdx=st.clientX-SheetDrag.startX, sdy=st.clientY-SheetDrag.startY;
+    SheetDrag.dx=sdx; SheetDrag.dy=sdy;
+    if(!SheetDrag.active){
+      if((Math.abs(sdx)>12 && Math.abs(sdx)>Math.abs(sdy)) || sdy<-8){ SheetDrag.tracking=false; return; }
+      if(sdy<6 || sdy<Math.abs(sdx)) return;
+      SheetDrag.active=true;
+      SheetDrag.target.classList.add("edge-dragging");
+    }
+    ev.preventDefault();
+    var offset=Math.max(0,sdy);
+    SheetDrag.target.style.transform="translateY("+offset+"px)";
+    var sheetHeight=SheetDrag.target.offsetHeight||window.innerHeight;
+    var sbd=document.querySelector("#sheet-root .backdrop");
+    if(sbd) sbd.style.opacity=String(Math.max(0,1-offset/Math.max(160,sheetHeight*.8)));
+    return;
+  }
   if(!Edge.tracking) return;
   var t=ev.touches[0]; if(!t) return;
   var dx=t.clientX-Edge.startX, dy=t.clientY-Edge.startY;
@@ -1832,22 +2033,42 @@ document.addEventListener("touchmove",function(ev){
   }
   ev.preventDefault();
   if(Edge.target) Edge.target.style.transform="translateX("+Math.max(0,Math.min(dx,window.innerWidth))+"px)";
-  var bd=document.querySelector("#sheet-root .backdrop");
-  if(bd) bd.style.opacity=String(Math.max(.12,1-dx/Math.max(160,window.innerWidth*.7)));
 },{passive:false});
+function finishSheetDrag(cancelled){
+  if(!SheetDrag.tracking) return;
+  var el=SheetDrag.target, active=SheetDrag.active;
+  var dx=SheetDrag.dx, dy=SheetDrag.dy, elapsed=Math.max(1,Date.now()-SheetDrag.started);
+  SheetDrag.tracking=false; SheetDrag.active=false; SheetDrag.target=null;
+  if(!el || !active){ if(el) el.style.animation=""; return; }
+  var height=el.offsetHeight||window.innerHeight;
+  var commit=!cancelled && (dy>Math.min(150,height*.3) || (dy>42 && dy/elapsed>.55)) && dy>Math.abs(dx)*1.1;
+  var bd=document.querySelector("#sheet-root .backdrop");
+  SheetDrag.settling=true;
+  Edge.suppressUntil=Date.now()+340;
+  el.classList.remove("edge-dragging");
+  el.classList.add("edge-settle");
+  el.style.transform=commit?"translateY(100%)":"translateY(0px)";
+  if(bd){ bd.style.transition="opacity .26s cubic-bezier(.32,.72,0,1)"; bd.style.opacity=commit?"0":"1"; }
+  clearTimeout(SheetDrag.settleTimer);
+  SheetDrag.settleTimer=setTimeout(function(){
+    el.style.transform="";
+    el.classList.remove("edge-settle");
+    if(bd){ bd.style.opacity=""; bd.style.transition=""; }
+    SheetDrag.settling=false;
+    if(commit) goBack();
+  },270);
+}
 function finishEdge(ev,cancelled){
   if(!Edge.tracking) return;
   var active=Edge.active, dx=Edge.dx, dy=Edge.dy, elapsed=Math.max(1,Date.now()-Edge.started);
   if(active){
-    Edge.suppressUntil=Date.now()+320;
+    Edge.suppressUntil=Date.now()+340;
     var commit=!cancelled && (dx>76 || (dx>38 && dx/elapsed>.55)) && dx>Math.abs(dy)*1.15;
-    var bd=document.querySelector("#sheet-root .backdrop"); if(bd) bd.style.opacity="";
     clearEdge(commit);
-    if(commit) goBack();
-  }else clearEdge(true);
+  }else clearEdge(false);
 }
-document.addEventListener("touchend",function(ev){ finishEdge(ev,false); },{passive:true});
-document.addEventListener("touchcancel",function(ev){ finishEdge(ev,true); },{passive:true});
+document.addEventListener("touchend",function(ev){ finishSheetDrag(false); finishEdge(ev,false); },{passive:true});
+document.addEventListener("touchcancel",function(ev){ finishSheetDrag(true); finishEdge(ev,true); },{passive:true});
 document.addEventListener("click",function(ev){
   if(Date.now()<Edge.suppressUntil){ ev.preventDefault(); ev.stopPropagation(); }
 },true);
@@ -2060,6 +2281,15 @@ document.addEventListener("click", async function(ev){
     }
     return;
   }
+  if(act==="setPriority"){
+    state.editor.data.priority=normPriority(el.dataset.v);
+    var pseg=el.parentNode;
+    if(pseg && pseg.querySelectorAll){
+      var ps=pseg.querySelectorAll("button");
+      for(var pi=0;pi<ps.length;pi++) ps[pi].classList.toggle("on",normPriority(ps[pi].dataset.v)===state.editor.data.priority);
+    }
+    return;
+  }
   if(act==="map"){
     var addr=(document.getElementById("e_place")||{}).value||"";
     addr=addr.trim();
@@ -2111,7 +2341,7 @@ document.addEventListener("click", async function(ev){
   }
   if(act==="addHere"){
     var date=el.dataset.date==="future"?null:el.dataset.date;
-    var blank={id:"",title:"新任务",raw:"",note:"",agenda:[],anchor:"due",date:date,time:null,endTime:null,place:"",category:"个人",tags:[],priority:0,status:"todo",doneAt:null,leadDays:null,repeat:null,source:"manual",relevant:true,reference:false,batchId:"",createdAt:Date.now(),updatedAt:Date.now()};
+    var blank={id:"",title:"新任务",raw:"",note:"",agenda:[],anchor:"due",date:date,time:null,endTime:null,place:"",category:"个人",tags:[],priority:1,status:"todo",doneAt:null,leadDays:null,repeat:null,source:"manual",relevant:true,reference:false,batchId:"",createdAt:Date.now(),updatedAt:Date.now()};
     state.editor={kind:"task",ref:"",data:blank,back:{type:"day",date:el.dataset.date}};
     state.sheet={type:"editor"};
     // 新建：保存时插入
@@ -2150,7 +2380,7 @@ document.addEventListener("change", function(ev){
         if(!data.tasks || !Array.isArray(data.tasks)) throw new Error("格式不对");
         var n=0, skipped=0;
         for(var i=0;i<data.tasks.length;i++){
-          var t=sanitizeImportedTask(data.tasks[i]);
+          var t=sanitizeImportedTask(data.tasks[i], data.priorityModel!==2);
           if(!t){ skipped++; continue; }
           await Store.put(t);
           var exists=false;
@@ -2168,7 +2398,7 @@ document.addEventListener("change", function(ev){
   }
 });
 
-function sanitizeImportedTask(raw){
+function sanitizeImportedTask(raw, legacyPriority){
   if(!raw || typeof raw!=="object") return null;
   var t=Object.assign({},raw);
   t.id=(typeof t.id==="string"&&t.id.trim())?t.id.trim():uid();
@@ -2182,7 +2412,7 @@ function sanitizeImportedTask(raw){
   t.anchor=t.anchor==="due"?"due":"occur";
   t.category=["进修","材料","班务","个人"].indexOf(t.category)>=0?t.category:"个人";
   t.tags=Array.isArray(t.tags)?t.tags.map(function(x){return String(x);}):[];
-  t.priority=Number.isFinite(+t.priority)?+t.priority:0;
+  t.priority=legacyPriority?1:normPriority(t.priority);
   t.status=["todo","done","dropped"].indexOf(t.status)>=0?t.status:"todo";
   t.doneAt=typeof t.doneAt==="number"?t.doneAt:null;
   t.leadDays=(t.leadDays!=null && Number.isFinite(+t.leadDays))?+t.leadDays:null;
@@ -2203,7 +2433,7 @@ function sanitizeImportedSettings(raw){
   if(Number.isFinite(+raw.lastExport)) state.settings.lastExport=+raw.lastExport;
 }
 async function exportData(){
-  var data={version:1,exportedAt:new Date().toISOString(),settings:state.settings,tasks:state.tasks};
+  var data={version:2,priorityModel:2,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),settings:state.settings,tasks:state.tasks};
   var str=JSON.stringify(data,null,2);
   var blob=new Blob([str],{type:"application/json"});
   var a=document.createElement("a");
@@ -2214,7 +2444,7 @@ async function exportData(){
   state.settings.lastExport=Date.now(); saveSettings(); toast("已导出备份");
 }
 function copyData(){
-  var data={version:1,exportedAt:new Date().toISOString(),settings:state.settings,tasks:state.tasks};
+  var data={version:2,priorityModel:2,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),settings:state.settings,tasks:state.tasks};
   var str=JSON.stringify(data);
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(str).then(function(){ toast("备份已复制"); },function(){ toast("复制失败"); });
@@ -2225,9 +2455,21 @@ function copyData(){
   }
 }
 
+async function migrateTaskPriorities(){
+  try{
+    if(localStorage.getItem("rige_priority_model")==="2") return;
+    for(var i=0;i<state.tasks.length;i++){
+      var t=state.tasks[i];
+      if(normPriority(t.priority)!==1){ t.priority=1; await Store.put(t); }
+      else if(typeof t.priority!=="number"){ t.priority=1; await Store.put(t); }
+    }
+    localStorage.setItem("rige_priority_model","2");
+  }catch(e){}
+}
 async function boot(){
   await Store.init();
   state.tasks=await Store.all();
+  await migrateTaskPriorities();
   render();
 }
 if(typeof document!=="undefined" && document.getElementById) boot();
