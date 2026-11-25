@@ -1,8 +1,8 @@
 /* 日格 PWA Service Worker
- * 部署新版本时：改 CACHE_NAME 里的版本号（例如 v12-2），再发布。
+ * 部署新版本时：改 CACHE_NAME 里的版本号（例如 v13-1），再发布。
  * 不要给 sw.js 设置长缓存；建议 Cache-Control: no-cache。
  */
-const CACHE_NAME = "rige-pwa-v12-1";
+const CACHE_NAME = "rige-pwa-v1-1-0";
 const APP_SHELL = [
   "./index.html",
   "./manifest.webmanifest",
