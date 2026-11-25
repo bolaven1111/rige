@@ -1066,8 +1066,10 @@ function lsReadTasks(){
   try{ var a=JSON.parse(localStorage.getItem("rige_tasks")||"[]"); return Array.isArray(a)?a:[]; }
   catch(e){ return []; }
 }
+function taskVersion(t){ var n=Number(t&&t.updatedAt); return Number.isFinite(n)?n:0; }
+function newerRecord(a,b){ return !a || taskVersion(b)>=taskVersion(a)?b:a; }
 var Store = {
-  mode:"ls", db:null,
+  mode:"ls", db:null, deleted:{},
   init:function(){
     var self=this;
     return new Promise(function(res){
@@ -1081,93 +1083,79 @@ var Store = {
     });
   },
   fallback:function(){ this.mode="ls"; },
-  all:function(){
+  idbAll:function(){
     var self=this;
-    if(self.mode==="idb"){
-      return new Promise(function(res){
-        try{
-          var req=self.db.transaction("tasks","readonly").objectStore("tasks").getAll();
-          req.onsuccess=function(){
-            var arr=req.result||[];
-            try{
-              var ls=lsReadTasks();
-              if(ls.length){
-                var ids={};
-                arr.forEach(function(x){ ids[x.id]=1; });
-                var missing=ls.filter(function(x){ return !ids[x.id]; });
-                if(missing.length){
-                  arr=arr.concat(missing);
-                  try{
-                    var tx=self.db.transaction("tasks","readwrite").objectStore("tasks");
-                    missing.forEach(function(x){ tx.put(x); });
-                  }catch(e){}
-                }
-              }
-            }catch(e){}
-            res(arr);
-          };
-          req.onerror=function(){ self.fallback(); res(lsReadTasks()); };
-        }catch(e){ self.fallback(); res(lsReadTasks()); }
-      });
-    }
-    return Promise.resolve(lsReadTasks());
+    return new Promise(function(res,rej){
+      try{
+        var tx=self.db.transaction("tasks","readonly");
+        var req=tx.objectStore("tasks").getAll();
+        req.onsuccess=function(){ res(req.result||[]); };
+        req.onerror=function(){ rej(req.error||new Error("IndexedDB 读取失败")); };
+      }catch(e){ rej(e); }
+    });
   },
-  put:function(t){
+  idbPut:function(t){
     var self=this;
-    if(self.mode==="idb"){
-      return new Promise(function(res){
-        try{
-          var req=self.db.transaction("tasks","readwrite").objectStore("tasks").put(t);
-          req.onsuccess=function(){ self.lsPut(t); res(); };
-          req.onerror=function(){ self.fallback(); self.lsPut(t); res(); };
-        }catch(e){ self.fallback(); self.lsPut(t); res(); }
-      });
+    return new Promise(function(res,rej){
+      try{
+        var tx=self.db.transaction("tasks","readwrite");
+        tx.objectStore("tasks").put(t);
+        tx.oncomplete=function(){ res(); };
+        tx.onerror=tx.onabort=function(){ rej(tx.error||new Error("IndexedDB 写入失败")); };
+      }catch(e){ rej(e); }
+    });
+  },
+  all:async function(){
+    var primary=[];
+    if(this.mode==="idb"){
+      try{ primary=await this.idbAll(); }
+      catch(e){ this.fallback(); }
     }
-    self.lsPut(t); return Promise.resolve();
+    var merged={};
+    primary.concat(lsReadTasks()).forEach(function(t){
+      if(t&&typeof t.id==="string"&&t.id) merged[t.id]=newerRecord(merged[t.id],t);
+    });
+    this.deleted={};
+    Object.keys(merged).forEach(function(id){
+      if(merged[id]&&merged[id]._deleted) Store.deleted[id]=taskVersion(merged[id]);
+    });
+    return Object.keys(merged).map(function(id){ return merged[id]; }).filter(function(t){ return t&&!t._deleted; });
+  },
+  put:async function(t){
+    var idbOk=false,lsOk=false;
+    if(this.mode==="idb"){
+      try{ await this.idbPut(t); idbOk=true; }
+      catch(e){ this.fallback(); }
+    }
+    try{ this.lsPut(t); lsOk=true; }catch(e){}
+    if(!idbOk&&!lsOk) throw new Error("任务存储失败");
+    if(t._deleted) this.deleted[t.id]=taskVersion(t);
+    else if(this.deleted[t.id]&&taskVersion(t)>this.deleted[t.id]) delete this.deleted[t.id];
   },
   lsPut:function(t){
-    try{
-      var a=lsReadTasks();
-      var i=-1; for(var j=0;j<a.length;j++){ if(a[j].id===t.id){ i=j; break; } }
-      if(i>=0) a[i]=t; else a.push(t);
-      localStorage.setItem("rige_tasks",JSON.stringify(a));
-    }catch(e){}
+    var a=lsReadTasks();
+    var i=-1; for(var j=0;j<a.length;j++){ if(a[j]&&a[j].id===t.id){ i=j; break; } }
+    if(i>=0) a[i]=newerRecord(a[i],t); else a.push(t);
+    localStorage.setItem("rige_tasks",JSON.stringify(a));
   },
   del:function(id){
-    var self=this;
-    if(self.mode==="idb"){
-      return new Promise(function(res){
-        try{
-          var req=self.db.transaction("tasks","readwrite").objectStore("tasks").delete(id);
-          req.onsuccess=function(){ self.lsDel(id); res(); };
-          req.onerror=function(){ self.fallback(); self.lsDel(id); res(); };
-        }catch(e){ self.fallback(); self.lsDel(id); res(); }
-      });
-    }
-    self.lsDel(id); return Promise.resolve();
+    return this.put({id:id,_deleted:true,updatedAt:Date.now()});
   },
-  lsDel:function(id){
-    try{
-      localStorage.setItem("rige_tasks",JSON.stringify(lsReadTasks().filter(function(x){return x.id!==id;})));
-    }catch(e){}
-  },
-  clear:function(){
-    var self=this;
-    if(self.mode==="idb"){
-      return new Promise(function(res){
-        try{
-          var req=self.db.transaction("tasks","readwrite").objectStore("tasks").clear();
-          req.onsuccess=function(){ try{localStorage.removeItem("rige_tasks");}catch(e){} res(); };
-          req.onerror=function(){ self.fallback(); try{localStorage.removeItem("rige_tasks");}catch(e){} res(); };
-        }catch(e){ self.fallback(); try{localStorage.removeItem("rige_tasks");}catch(e){} res(); }
-      });
-    }
-    try{ localStorage.removeItem("rige_tasks"); }catch(e){}
-    return Promise.resolve();
+  clear:async function(){
+    var tasks=await this.all();
+    for(var i=0;i<tasks.length;i++) await this.del(tasks[i].id);
   }
 };
+async function putTask(t){
+  try{ await Store.put(t); return true; }
+  catch(e){ toast("保存失败：请检查存储空间，并先导出备份"); return false; }
+}
+async function deleteStoredTask(id){
+  try{ await Store.del(id); return true; }
+  catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
+}
 
-var APP_VERSION = "V1.4.3";
+var APP_VERSION = "V1.5";
 var state = {
   view:"home",
   quickMenu:false,
@@ -1179,7 +1167,10 @@ var state = {
   parseText:"",
   editor:null,
   bb:null,
-  manual:null
+  manual:null,
+  saving:false,
+  addingDrafts:false,
+  importing:false
 };
 
 var TODAY = new Date(); TODAY.setHours(0,0,0,0);
@@ -1529,6 +1520,7 @@ function renderQuickMenu(){
     +'</div>';
 }
 function render(){
+  syncEditorFields();
   ensureToday();
   if(state.view==="home") removeEdgeUnderlay();
   var app=document.getElementById("app");
@@ -1575,14 +1567,14 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["麦克风授权不再打断","打开应用后第一次触碰屏幕就会弹出系统麦克风授权（系统弹窗本身无法去除）；同意后，第一次长按说话直接开始，不会再被弹窗打断。"],
-    ["粘贴按钮更紧凑","底部按钮加了「长按说话」文字，宽度改为贴合内容，两侧不再有大片空白。"],
-    ["编辑页固定","任务编辑页整体不再随空白处上下滑动；备注框自己占满剩余空间，备注太长时在框内上下滑动查看。"],
-    ["设置更精简","移除了设置里的「学期名称」，教学周设置保留不变。"],
-    ["打开依然秒开","本地缓存优先、后台静默更新的打开方式不变，离线也能用。"]
+    ["保存更可靠","保存失败现在会明确提示，不再假报“已保存”；本地双存储按修改时间取最新，删除的任务不会被旧数据带回来。"],
+    ["防重复提交","连续快速点保存或加入任务，只会生成一条，不会重复建任务。"],
+    ["编辑草稿不丢","在编辑页改了内容后进入“重拼”再返回，未保存的修改会保留。"],
+    ["备份导入更安全","导入会校验真实日期、限制文件大小和条数；同 ID 只接受更新的版本，旧备份不会覆盖现有新任务。"],
+    ["界面保持不变","八日格、解析规则和外观都没有改动，打开仍然秒开、离线可用。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">语音、按钮与编辑页修正</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">数据安全与稳定性修复</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无模型、无云同步。删除主屏图标或清除浏览器网站数据前，请先导出备份。</div>';
 }
@@ -1782,6 +1774,7 @@ function syncManualFields(){
   if(t) m.time=t.value;
 }
 async function saveManual(){
+  if(state.saving) return;
   syncManualFields();
   var m=state.manual; if(!m) return;
   var sel=m.chunks.map(function(c,i){ return m.sel[i]?c:null; }).filter(Boolean).join("");
@@ -1796,11 +1789,14 @@ async function saveManual(){
   var anchor=decideAnchor(m.text,{place:place,time:tm});
   var now=Date.now();
   var task={id:uid(),title:title,raw:m.text,note:m.text,agenda:[],anchor:anchor,date:date,time:tm,endTime:endTm,place:place,category:cat,tags:[],priority:1,status:"todo",doneAt:null,leadDays:null,repeat:null,source:"manual",relevant:true,reference:false,batchId:"",createdAt:now,updatedAt:now};
-  await Store.put(task);
-  state.tasks.push(task);
-  state.manual=null; state.sheet=null;
-  toast("已存 1 条");
-  render();
+  state.saving=true;
+  try{
+    if(!await putTask(task)) return;
+    state.tasks.push(task);
+    state.manual=null; state.sheet=null;
+    toast("已存 1 条");
+    render();
+  }finally{ state.saving=false; }
 }
 function parseCurrent(text){
   var arr=parseAll(text, TODAY, state.settings);
@@ -1828,29 +1824,39 @@ function parseCheck(arr,text,base){
   return {ok:true,msg:""};
 }
 async function addDrafts(){
+  if(state.addingDrafts) return;
   var list=state.drafts||[];
   var sel=state.draftSel||[];
   var picked=[];
   for(var i=0;i<list.length;i++){ if(sel[i]) picked.push(i); }
   if(!picked.length){ toast("先点卡片选择任务"); return; }
-  for(var j=0;j<picked.length;j++){
-    var t=Object.assign({},list[picked[j]]);
-    t.id=uid();
-    await Store.put(t);
-    state.tasks.push(t);
-  }
-  var n=picked.length;
-  var remain=list.filter(function(_,k){ return picked.indexOf(k)<0; });
-  if(remain.length){
-    state.drafts=remain;
-    state.draftSel=remain.map(function(){ return false; });
-    toast("已加入 "+n+" 条，还有 "+remain.length+" 条未加入");
-    renderSheet();
-  }else{
-    state.drafts=null; state.draftSel=[]; state.sheet=null;
-    toast("已加入 "+n+" 条");
-    render();
-  }
+  state.addingDrafts=true;
+  var btn=document.getElementById("addDraftsBtn"); if(btn) btn.disabled=true;
+  var added=[];
+  try{
+    for(var j=0;j<picked.length;j++){
+      var t=Object.assign({},list[picked[j]]);
+      t.id=uid();
+      if(!await putTask(t)){
+        var afterFailure=list.filter(function(_,k){ return added.indexOf(k)<0; });
+        state.drafts=afterFailure; state.draftSel=afterFailure.map(function(){ return false; });
+        renderSheet(); return;
+      }
+      added.push(picked[j]); state.tasks.push(t);
+    }
+    var n=added.length;
+    var remain=list.filter(function(_,k){ return added.indexOf(k)<0; });
+    if(remain.length){
+      state.drafts=remain;
+      state.draftSel=remain.map(function(){ return false; });
+      toast("已加入 "+n+" 条，还有 "+remain.length+" 条未加入");
+      renderSheet();
+    }else{
+      state.drafts=null; state.draftSel=[]; state.sheet=null;
+      toast("已加入 "+n+" 条");
+      render();
+    }
+  }finally{ state.addingDrafts=false; }
 }
 function openEditor(kind, ref){
   var data;
@@ -1866,16 +1872,26 @@ function openEditor(kind, ref){
   state.sheet={type:"editor"};
   renderSheet();
 }
-async function saveEditor(){
+function syncEditorFields(){
   var e=state.editor; if(!e) return;
-  var title=(document.getElementById("e_title").value||"").trim()||"未命名";
-  var date=document.getElementById("e_date").value||null;
-  var time=document.getElementById("e_time").value||null;
-  var place=(document.getElementById("e_place").value||"").trim();
-  var note=document.getElementById("e_note").value||"";
-  var patch={title:title,date:date,time:time,priority:normPriority(e.data.priority),place:place,note:note,updatedAt:Date.now()};
-  patch.anchor=e.data.anchor;
-  patch.status=e.data.status||"todo";
+  function value(id){ var el=document.getElementById(id); return el?el.value:null; }
+  var title=value("e_title"); if(title!==null) e.data.title=title;
+  var date=value("e_date"); if(date!==null) e.data.date=date||null;
+  var time=value("e_time"); if(time!==null) e.data.time=time||null;
+  var place=value("e_place"); if(place!==null) e.data.place=place;
+  var note=value("e_note"); if(note!==null) e.data.note=note;
+}
+async function saveEditor(){
+  if(state.saving) return;
+  syncEditorFields();
+  var e=state.editor; if(!e) return;
+  var patch={
+    title:String(e.data.title||"").trim()||"未命名",
+    date:e.data.date||null, time:e.data.time||null,
+    priority:normPriority(e.data.priority), place:String(e.data.place||"").trim(),
+    note:e.data.note||"", updatedAt:Date.now(), anchor:e.data.anchor,
+    status:e.data.status||"todo"
+  };
   patch.doneAt=patch.status==="done"?(e.data.doneAt||Date.now()):null;
   if(e.kind==="draft"){
     Object.assign(state.drafts[e.ref],patch);
@@ -1883,24 +1899,35 @@ async function saveEditor(){
     renderSheet();
     return;
   }
-  if(e.isNew){
-    var nt=Object.assign({},e.data,patch);
-    nt.id=uid(); nt.createdAt=Date.now(); nt.updatedAt=Date.now(); nt.source=nt.source||"manual";
-    await Store.put(nt);
-    state.tasks.push(nt);
-    state.sheet=null; state.editor=null;
-    render(); toast("已新增");
-    return;
+  state.saving=true;
+  var btn=document.querySelector(".save-editor"); if(btn) btn.disabled=true;
+  try{
+    if(e.isNew){
+      var nt=Object.assign({},e.data,patch);
+      nt.id=uid(); nt.createdAt=Date.now(); nt.updatedAt=Date.now(); nt.source=nt.source||"manual";
+      if(!await putTask(nt)) return;
+      state.tasks.push(nt);
+      state.sheet=null; state.editor=null;
+      render(); toast("已新增");
+      return;
+    }
+    var t=null;
+    for(var i=0;i<state.tasks.length;i++){ if(state.tasks[i].id===e.ref){ t=state.tasks[i]; break; } }
+    if(t){
+      var updated=Object.assign({},t,patch);
+      if(!await putTask(updated)) return;
+      Object.assign(t,patch);
+    }
+    state.sheet=e.back&&e.back.type==="day"?e.back:null;
+    state.editor=null;
+    render(); toast("已保存");
+  }finally{
+    state.saving=false;
+    if(btn&&btn.isConnected) btn.disabled=false;
   }
-  var t=null;
-  for(var i=0;i<state.tasks.length;i++){ if(state.tasks[i].id===e.ref){ t=state.tasks[i]; break; } }
-  if(t){ Object.assign(t,patch); await Store.put(t); }
-  state.sheet=e.back&&e.back.type==="day"?e.back:null;
-  state.editor=null;
-  render();
-  toast("已保存");
 }
 function openBB(kind, ref, text, cands){
+  syncEditorFields();
   var back=state.sheet;
   state.bb={kind:kind,ref:ref,text:text,chunks:segment(text),sel:{},cands:cands||[],back:back};
   state.sheet={type:"bb"};
@@ -2262,6 +2289,7 @@ document.addEventListener("click", async function(ev){
     return;
   }
   if(act==="bbEdit"){
+    syncEditorFields();
     var e=state.editor;
     if(e.kind==="draft"){ openBB("draft", e.ref, state.drafts[e.ref].raw, [state.drafts[e.ref].title]); }
     else { var src=(e.data.raw&&e.data.raw.length<=120)?e.data.raw:e.data.title; openBB("task", e.ref, src, [e.data.title]); }
@@ -2283,16 +2311,13 @@ document.addEventListener("click", async function(ev){
     if(!sel){ toast("先点几个词块"); return; }
     if(sel.length>12){ toast("最多 12 个字"); return; }
     var b=state.bb;
-    if(b.kind==="draft"){
-      state.drafts[b.ref].title=sel;
-      state.sheet={type:"paste"};
-    }else{
-      for(var k=0;k<state.tasks.length;k++){
-        if(state.tasks[k].id===b.ref){ state.tasks[k].title=sel; await Store.put(state.tasks[k]); break; }
-      }
-      state.sheet=state.editor&&state.editor.back?state.editor.back:null;
-      if(state.sheet && state.sheet.type==="day"){ state.sheet={type:"day",date:state.sheet.date}; }
+    if(b.back&&b.back.type==="editor"&&state.editor){
+      state.editor.data.title=sel;
+      state.bb=null; state.sheet={type:"editor"};
+      renderSheet(); return;
     }
+    if(b.kind==="draft") state.drafts[b.ref].title=sel;
+    state.sheet={type:"paste"};
     state.bb=null;
     render();
     return;
@@ -2309,9 +2334,10 @@ document.addEventListener("click", async function(ev){
     for(var m=0;m<state.tasks.length;m++){
       if(state.tasks[m].id===id){
         var t=state.tasks[m];
-        t.status = t.status==="done"?"todo":"done";
-        t.doneAt = t.status==="done"?Date.now():null;
-        await Store.put(t);
+        var status=t.status==="done"?"todo":"done";
+        var updatedToggle=Object.assign({},t,{status:status,doneAt:status==="done"?Date.now():null,updatedAt:Date.now()});
+        if(!await putTask(updatedToggle)) return;
+        state.tasks[m]=updatedToggle;
       }
     }
     render();
@@ -2375,7 +2401,7 @@ document.addEventListener("click", async function(ev){
       state.editor=null; renderSheet(); return;
     }
     var did=state.editor.ref;
-    await Store.del(did);
+    if(!await deleteStoredTask(did)) return;
     state.tasks=state.tasks.filter(function(x){return x.id!==did;});
     state.sheet=null; state.editor=null;
     render();
@@ -2385,8 +2411,9 @@ document.addEventListener("click", async function(ev){
     var tid=el.dataset.id;
     for(var q=0;q<state.tasks.length;q++){
       if(state.tasks[q].id===tid){
-        state.tasks[q].date=todayStr();
-        await Store.put(state.tasks[q]);
+        var moved=Object.assign({},state.tasks[q],{date:todayStr(),updatedAt:Date.now()});
+        if(!await putTask(moved)) return;
+        state.tasks[q]=moved;
       }
     }
     render(); toast("已排到今天");
@@ -2395,7 +2422,7 @@ document.addEventListener("click", async function(ev){
   if(act==="delTask"){
     if(!confirm("删除这条任务？")) return;
     var did2=el.dataset.id;
-    await Store.del(did2);
+    if(!await deleteStoredTask(did2)) return;
     state.tasks=state.tasks.filter(function(x){return x.id!==did2;});
     render(); return;
   }
@@ -2417,13 +2444,15 @@ document.addEventListener("click", async function(ev){
   if(act==="importBtn"){ var f=document.getElementById("importFile"); if(f) f.click(); return; }
   if(act==="clear"){
     if(!confirm("清空全部任务？这个操作不能撤销。")) return;
-    await Store.clear(); state.tasks=[]; render(); toast("已清空"); return;
+    try{ await Store.clear(); }
+    catch(e){ state.tasks=await Store.all(); render(); toast("清空未完全成功，请重试"); return; }
+    state.tasks=[]; render(); toast("已清空"); return;
   }
-  if(act==="importBtn"){}
 });
 
 document.addEventListener("input", function(ev){
   if(ev.target.id==="pasteInput"){ state.parseText=ev.target.value; }
+  if(/^e_(title|date|time|place|note)$/.test(ev.target.id)) syncEditorFields();
 });
 
 document.addEventListener("change", function(ev){
@@ -2432,61 +2461,85 @@ document.addEventListener("change", function(ev){
   else if(id==="s_oddeven"){ state.settings.oddEvenStart=v; saveSettings(); render(); }
   else if(id==="importFile"){
     var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+    if(f.size>5*1024*1024){ toast("备份文件不能超过 5 MB"); ev.target.value=""; return; }
+    if(state.importing){ toast("正在导入，请稍候"); return; }
     var rd=new FileReader();
     rd.onload=async function(){
       try{
         var data=JSON.parse(rd.result);
-        if(!data.tasks || !Array.isArray(data.tasks)) throw new Error("格式不对");
-        var n=0, skipped=0;
-        for(var i=0;i<data.tasks.length;i++){
-          var t=sanitizeImportedTask(data.tasks[i], data.priorityModel!==2);
-          if(!t){ skipped++; continue; }
-          await Store.put(t);
-          var exists=false;
-          for(var j=0;j<state.tasks.length;j++){ if(state.tasks[j].id===t.id){ state.tasks[j]=t; exists=true; break; } }
-          if(!exists) state.tasks.push(t);
-          n++;
-        }
-        sanitizeImportedSettings(data.settings);
-        saveSettings();
-        toast("已导入 "+n+" 条"+(skipped?"，跳过 "+skipped+" 条无效数据":""));
-        render();
-      }catch(e){ toast("导入失败，文件格式不对"); }
+        var result=await importBackupData(data);
+        if(result) render();
+      }catch(e){ toast(e.message==="备份任务过多"?"导入失败：最多支持 5000 条任务":"导入失败，文件格式不对"); }
     };
+    rd.onerror=function(){ toast("读取备份文件失败"); };
     rd.readAsText(f);
+    ev.target.value="";
   }
 });
 
+async function importBackupData(data){
+  if(!data||!Array.isArray(data.tasks)) throw new Error("格式不对");
+  if(data.tasks.length>5000) throw new Error("备份任务过多");
+  if(state.importing) return null;
+  state.importing=true;
+  var result={added:0,updated:0,invalid:0,older:0,deleted:0,failed:false};
+  try{
+    for(var i=0;i<data.tasks.length;i++){
+      var t=sanitizeImportedTask(data.tasks[i],data.priorityModel!==2);
+      if(!t){ result.invalid++; continue; }
+      var existing=-1;
+      for(var j=0;j<state.tasks.length;j++){ if(state.tasks[j].id===t.id){ existing=j; break; } }
+      if(existing>=0&&taskVersion(t)<=taskVersion(state.tasks[existing])){ result.older++; continue; }
+      if(existing<0&&Store.deleted[t.id]&&taskVersion(t)<=Store.deleted[t.id]){ result.deleted++; continue; }
+      try{ await Store.put(t); }
+      catch(e){ result.failed=true; break; }
+      if(existing>=0){ state.tasks[existing]=t; result.updated++; }
+      else{ state.tasks.push(t); result.added++; }
+    }
+    sanitizeImportedSettings(data.settings); saveSettings();
+    var msg=result.failed?"导入中断：已写入 "+(result.added+result.updated)+" 条，请重试":"导入完成：新增 "+result.added+" 条，更新 "+result.updated+" 条";
+    var skipped=result.invalid+result.older+result.deleted;
+    if(skipped) msg+="，跳过 "+skipped+" 条";
+    toast(msg);
+    return result;
+  }finally{ state.importing=false; }
+}
+function validDateString(s){
+  if(typeof s!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  var p=s.split("-").map(Number), d=new Date(p[0],p[1]-1,p[2]);
+  return d.getFullYear()===p[0]&&d.getMonth()===p[1]-1&&d.getDate()===p[2];
+}
 function sanitizeImportedTask(raw, legacyPriority){
   if(!raw || typeof raw!=="object") return null;
   var t=Object.assign({},raw);
-  t.id=(typeof t.id==="string"&&t.id.trim())?t.id.trim():uid();
+  t.id=(typeof t.id==="string"&&t.id.trim()&&t.id.trim().length<=100)?t.id.trim():uid();
   t.title=String(t.title||"").trim().slice(0,80)||"未命名任务";
-  t.raw=String(t.raw||t.note||"");
-  t.note=String(t.note||t.raw||"");
-  t.agenda=Array.isArray(t.agenda)?t.agenda.filter(function(x){return x!=null && String(x).trim();}).map(function(x){return String(x);}):[];
-  t.date=(typeof t.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(t.date))?t.date:null;
+  t.raw=String(t.raw||t.note||"").slice(0,20000);
+  t.note=String(t.note||t.raw||"").slice(0,20000);
+  t.agenda=Array.isArray(t.agenda)?t.agenda.filter(function(x){return x!=null && String(x).trim();}).slice(0,100).map(function(x){return String(x).slice(0,1000);}):[];
+  if(t.date!=null&&t.date!==""&&!validDateString(t.date)) return null;
+  t.date=validDateString(t.date)?t.date:null;
   t.time=(typeof t.time==="string"&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(t.time))?t.time:null;
   t.endTime=(typeof t.endTime==="string"&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(t.endTime))?t.endTime:null;
   t.anchor=t.anchor==="due"?"due":"occur";
   t.category=["进修","材料","班务","个人"].indexOf(t.category)>=0?t.category:"个人";
-  t.tags=Array.isArray(t.tags)?t.tags.map(function(x){return String(x);}):[];
+  t.tags=Array.isArray(t.tags)?t.tags.slice(0,20).map(function(x){return String(x).slice(0,40);}):[];
   t.priority=legacyPriority?1:normPriority(t.priority);
   t.status=["todo","done","dropped"].indexOf(t.status)>=0?t.status:"todo";
-  t.doneAt=typeof t.doneAt==="number"?t.doneAt:null;
+  t.doneAt=typeof t.doneAt==="number"&&Number.isFinite(t.doneAt)?t.doneAt:null;
   t.leadDays=(t.leadDays!=null && Number.isFinite(+t.leadDays))?+t.leadDays:null;
-  t.repeat=t.repeat||null;
-  t.source=String(t.source||"import");
+  t.repeat=typeof t.repeat==="string"?t.repeat.slice(0,100):null;
+  t.source=String(t.source||"import").slice(0,40);
   t.relevant=true;
   t.reference=!!t.reference;
-  t.batchId=String(t.batchId||"");
+  t.batchId=String(t.batchId||"").slice(0,100);
   t.createdAt=Number.isFinite(+t.createdAt)?+t.createdAt:Date.now();
-  t.updatedAt=Number.isFinite(+t.updatedAt)?+t.updatedAt:Date.now();
+  t.updatedAt=Number.isFinite(+t.updatedAt)?+t.updatedAt:0;
   return t;
 }
 function sanitizeImportedSettings(raw){
   if(!raw || typeof raw!=="object") return;
-  if(typeof raw.weekOneMonday==="string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.weekOneMonday)) state.settings.weekOneMonday=raw.weekOneMonday;
+  if(validDateString(raw.weekOneMonday)) state.settings.weekOneMonday=raw.weekOneMonday;
   if(raw.oddEvenStart==="odd"||raw.oddEvenStart==="even") state.settings.oddEvenStart=raw.oddEvenStart;
   if(typeof raw.semesterName==="string") state.settings.semesterName=raw.semesterName.slice(0,40);
   if(Number.isFinite(+raw.lastExport)) state.settings.lastExport=+raw.lastExport;
@@ -2519,8 +2572,11 @@ async function migrateTaskPriorities(){
     if(localStorage.getItem("rige_priority_model")==="2") return;
     for(var i=0;i<state.tasks.length;i++){
       var t=state.tasks[i];
-      if(normPriority(t.priority)!==1){ t.priority=1; await Store.put(t); }
-      else if(typeof t.priority!=="number"){ t.priority=1; await Store.put(t); }
+      if(normPriority(t.priority)!==1 || typeof t.priority!=="number"){
+        var migrated=Object.assign({},t,{priority:1});
+        await Store.put(migrated);
+        state.tasks[i]=migrated;
+      }
     }
     localStorage.setItem("rige_priority_model","2");
   }catch(e){}
