@@ -67,13 +67,6 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .btn:active{opacity:.85}
 .btn{position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .btn-hint{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:400;opacity:.72}
-.btn.voice-on{background:#E5484D}
-.voice-hud{position:fixed;left:50%;bottom:calc(132px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;width:calc(100% - 32px);max-width:370px;background:rgba(28,28,30,.94);color:#fff;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:9px;box-shadow:0 6px 24px rgba(0,0,0,.22)}
-.voice-hud[hidden]{display:none}
-.vdot{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:#FF453A;animation:vpulse 1s infinite}
-.vtext{flex:1;font-size:13px;line-height:1.4;max-height:2.8em;overflow:hidden;word-break:break-all}
-.vstop{flex:0 0 auto;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:12px;padding:5px 10px;border-radius:8px;font-family:inherit}
-@keyframes vpulse{0%,100%{opacity:1}50%{opacity:.25}}
 .subline{margin-top:8px;display:flex;justify-content:center;gap:14px;font-size:11px;color:#8E8E93}
 .subline span{padding:4px}
 .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:50;animation:fade .18s ease}
@@ -188,11 +181,8 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 
 .bottom{padding:8px 16px 12px;display:flex;justify-content:center}
 .btn.composer{width:auto;min-width:0;padding:0 20px;height:50px;border-radius:18px;background:var(--card);color:var(--ink);box-shadow:0 4px 18px rgba(20,24,40,.10);display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:550;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
-.btn.composer .clabel{font-size:13px;font-weight:500;color:#4A4A4F}
 .btn.composer:active{transform:scale(.965);box-shadow:0 2px 8px rgba(20,24,40,.08)}
 .btn.composer>.ic{font-size:21px;color:#4A4A4F}
-.composer-sep{width:1px;height:20px;background:#E3E3E8;margin:0 3px}
-.btn.composer.voice-on{background:#FFF0F0;color:var(--danger)}
 
 .backdrop{background:rgba(0,0,0,.18)}
 .sheet{background:var(--bg);border-radius:22px 22px 0 0;box-shadow:0 -10px 36px rgba(20,24,40,.10);padding:8px 16px calc(14px + env(safe-area-inset-bottom));scrollbar-width:none}
@@ -289,7 +279,6 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 <div id="menu-root"></div>
 <div id="sheet-root"></div>
 <div id="toast" class="toast"></div>
-<div id="voiceHud" class="voice-hud" hidden><span class="vdot"></span><span class="vtext" id="voiceText">正在听… 松手结束</span><button class="vstop" data-act="voiceStop">结束</button></div>
 <script>
 /* ================= PARSER START ================= */
 var OBJ = [
@@ -1155,7 +1144,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.5";
+var APP_VERSION = "V1.5.1";
 var state = {
   view:"home",
   quickMenu:false,
@@ -1183,122 +1172,11 @@ function refreshToday(){
   if(ensureToday()) render();
 }
 
-var Voice={supported:null,pressing:false,longPress:false,active:false,rec:null,final:"",interim:"",timer:null,maxTimer:null,suppressUntil:0,error:"",restart:0,finishing:false,origLabel:""};
-
-function voiceSupported(){
-  if(Voice.supported===null) Voice.supported=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
-  return Voice.supported;
-}
-function voiceButton(){ return document.querySelector('[data-act="openPaste"]'); }
-function setVoiceLabel(html,on){
-  var b=voiceButton(); if(!b) return;
-  if(html){ if(!Voice.origLabel) Voice.origLabel=b.innerHTML; b.innerHTML=html; }
-  else if(Voice.origLabel){ b.innerHTML=Voice.origLabel; Voice.origLabel=""; }
-  b.classList.toggle("voice-on",!!on);
-}
-function showVoiceHud(txt){
-  var hud=document.getElementById("voiceHud"); var t=document.getElementById("voiceText");
-  if(hud) hud.hidden=false;
-  if(t) t.textContent=txt||"正在听… 松手结束";
-}
-function hideVoiceHud(){ var hud=document.getElementById("voiceHud"); if(hud) hud.hidden=true; }
-function updateVoiceHud(){
-  var txt=(Voice.final+Voice.interim).trim();
-  showVoiceHud(txt||"正在听… 松手结束");
-}
-function startVoice(){
-  if(Voice.active) return;
-  Voice.final=""; Voice.interim=""; Voice.error=""; Voice.restart=0; Voice.finishing=false;
-  if(!voiceSupported()){
-    toast("这个浏览器不支持系统听写，请用键盘麦克风");
-    state.sheet={type:"paste"}; state.drafts=null; state.parseText="";
-    renderSheet();
-    setTimeout(function(){ var ta=document.getElementById("pasteInput"); if(ta) ta.focus(); },300);
-    return;
-  }
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  var rec=new SR();
-  rec.lang="zh-CN"; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=1;
-  Voice.rec=rec;
-  rec.onresult=function(ev){
-    var interim="";
-    for(var i=ev.resultIndex;i<ev.results.length;i++){
-      var r=ev.results[i];
-      if(r.isFinal) Voice.final+=r[0].transcript;
-      else interim+=r[0].transcript;
-    }
-    Voice.interim=interim;
-    updateVoiceHud();
-  };
-  rec.onerror=function(e){
-    Voice.error=e.error||"";
-    if(e.error==="not-allowed"||e.error==="service-not-allowed") toast("麦克风未授权，请在设置里允许");
-    else if(e.error==="no-speech") toast("没听到声音，再说一次");
-    else if(e.error==="network") toast("系统听写服务连不上");
-  };
-  rec.onend=function(){
-    if(Voice.active && Voice.pressing && Voice.restart<4){
-      Voice.restart++;
-      try{ rec.start(); return; }catch(e){}
-    }
-    if(Voice.active) finishVoice();
-  };
-  Voice.active=true;
-  setVoiceLabel("正在听… 松手结束",true);
-  showVoiceHud("正在听… 松手结束");
-  try{ rec.start(); }
-  catch(e){ Voice.active=false; Voice.error="start-failed"; setVoiceLabel(null,false); hideVoiceHud(); toast("无法启动听写，请用键盘麦克风"); return; }
-  clearTimeout(Voice.maxTimer);
-  Voice.maxTimer=setTimeout(function(){ if(Voice.active) stopVoice(); },25000);
-}
-function stopVoice(){
-  if(!Voice.active) return;
-  Voice.active=false;
-  clearTimeout(Voice.maxTimer);
-  try{ Voice.rec && Voice.rec.stop(); }catch(e){}
-  setVoiceLabel("识别中…",true);
-  showVoiceHud("识别中…");
-  setTimeout(finishVoice,900);
-}
-function finishVoice(){
-  if(Voice.finishing) return;
-  Voice.finishing=true; Voice.active=false;
-  clearTimeout(Voice.maxTimer);
-  var text=(Voice.final+Voice.interim).trim();
-  Voice.rec=null;
-  setVoiceLabel(null,false);
-  hideVoiceHud();
-  setTimeout(function(){ Voice.finishing=false; },100);
-  if(!text){
-    if(Voice.error==="not-allowed"||Voice.error==="service-not-allowed"||Voice.error==="start-failed"){
-      toast("麦克风不可用，可点输入框改用键盘听写");
-      state.sheet={type:"paste"}; state.drafts=null; state.parseText="";
-      renderSheet();
-      setTimeout(function(){ var ta=document.getElementById("pasteInput"); if(ta) ta.focus(); },300);
-    } else if(!Voice.error){
-      toast("没听清，按住多说一会儿");
-    }
-    return;
-  }
-  state.parseText=text;
-  var arr=parseCurrent(text);
-  var chk=parseCheck(arr,text);
-  if(chk.ok){
-    setDrafts(arr);
-    state.sheet={type:"paste"};
-    renderSheet();
-  }else{
-    openManual(text);
-    toast(chk.msg);
-  }
-}
-
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function icon(name,size){
   var p={
     more:'<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"></circle>',
     clipboard:'<rect x="5" y="4" width="14" height="17" rx="2.5"></rect><path d="M9 4.5V3h6v1.5M9 10h6M9 14h6M9 18h4"></path>',
-    mic:'<rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path>',
     inbox:'<path d="M4 5h16l1 10v4H3v-4L4 5Z"></path><path d="M3.5 14h5l1.5 2h4l1.5-2h5"></path>',
     settings:'<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 9 19.37a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-1.55-1.03H3v-4h.08A1.7 1.7 0 0 0 4.63 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1.03-1.55V3h4v.08A1.7 1.7 0 0 0 15 4.63a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.37 9a1.7 1.7 0 0 0 1.55 1.03H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z"></path>',
     back:'<path d="m15 18-6-6 6-6"></path>',
@@ -1398,7 +1276,7 @@ function renderHome(){
     +'</div>'
     +'<div class="mid"><div class="grid">'+cells+'</div></div>'
     +'<div class="bottom">'
-    +'<button class="btn composer" data-act="openPaste" aria-label="粘贴一段话，长按说话" title="粘贴一段话，长按说话">'+icon("clipboard",21)+'<span>粘贴</span><span class="composer-sep"></span>'+icon("mic",21)+'<span class="clabel">长按说话</span></button>'
+    +'<button class="btn composer" data-act="openPaste" aria-label="粘贴或说话" title="粘贴或说话">'+icon("clipboard",21)+'<span>粘贴或说话</span></button>'
     +'</div>';
 }
 function dayCard(d, ds, items, isToday, isFuture){
@@ -1567,14 +1445,12 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["保存更可靠","保存失败现在会明确提示，不再假报“已保存”；本地双存储按修改时间取最新，删除的任务不会被旧数据带回来。"],
-    ["防重复提交","连续快速点保存或加入任务，只会生成一条，不会重复建任务。"],
-    ["编辑草稿不丢","在编辑页改了内容后进入“重拼”再返回，未保存的修改会保留。"],
-    ["备份导入更安全","导入会校验真实日期、限制文件大小和条数；同 ID 只接受更新的版本，旧备份不会覆盖现有新任务。"],
-    ["界面保持不变","八日格、解析规则和外观都没有改动，打开仍然秒开、离线可用。"]
+    ["语音输入换系统通道","移除了内置的长按语音识别——网页听写准确率差是平台限制，改不掉。现在点按底部按钮直接聚焦输入框并弹出键盘，点键盘上的麦克风说话，用苹果系统级听写，识别准得多。"],
+    ["按钮更简洁","底部按钮只保留一个「粘贴或说话」，长按说话、麦克风图标、听写提示条都去掉了。"],
+    ["数据与界面不变","V1.5 的保存可靠性、防重复提交等修复都保留，八日格和解析规则不变。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">数据安全与稳定性修复</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">语音输入改用系统听写</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无模型、无云同步。删除主屏图标或清除浏览器网站数据前，请先导出备份。</div>';
 }
@@ -1755,6 +1631,7 @@ function sheetBB(){
 
 function openPaste(){
   state.sheet={type:"paste"}; state.drafts=null; state.draftSel=[]; state.parseText=""; renderSheet();
+  setTimeout(function(){ var ta=document.getElementById("pasteInput"); if(ta) ta.focus(); },80);
 }
 function openManual(text){
   var d=parseDate(text,TODAY);
@@ -2051,7 +1928,7 @@ function clearEdge(commit){
   },270);
 }
 document.addEventListener("touchstart",function(ev){
-  if(ev.touches.length!==1 || Voice.pressing || state.quickMenu || Edge.settling || SheetDrag.settling) return;
+  if(ev.touches.length!==1 || state.quickMenu || Edge.settling || SheetDrag.settling) return;
   var t=ev.touches[0];
   if(state.sheet){
     var grabber=ev.target.closest?ev.target.closest("#sheet-root .grabber"):null;
@@ -2147,50 +2024,6 @@ document.addEventListener("click",function(ev){
   if(Date.now()<Edge.suppressUntil){ ev.preventDefault(); ev.stopPropagation(); }
 },true);
 
-document.addEventListener("pointerdown", function(ev){
-  var btn=ev.target.closest && ev.target.closest('[data-act="openPaste"]');
-  if(!btn || Voice.pressing) return;
-  Voice.pressing=true; Voice.longPress=false;
-  Voice.startX=ev.clientX; Voice.startY=ev.clientY;
-  clearTimeout(Voice.timer);
-  Voice.timer=setTimeout(function(){
-    if(!Voice.pressing) return;
-    Voice.longPress=true;
-    startVoice();
-  },520);
-});
-
-/* 麦克风权限预热：打开应用后第一次触碰就触发系统授权弹窗，
- * 这样第一次长按说话时不会再被弹窗打断。系统弹窗本身无法去除。 */
-var MicWarm={asked:false};
-function warmMic(){
-  if(MicWarm.asked) return;
-  MicWarm.asked=true;
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-    if(stream && stream.getTracks) stream.getTracks().forEach(function(t){ t.stop(); });
-  }).catch(function(){});
-}
-document.addEventListener("pointerdown",function(){ warmMic(); },{passive:true});
-document.addEventListener("pointermove", function(ev){
-  if(!Voice.pressing) return;
-  if(Math.abs(ev.clientX-(Voice.startX||0))>14 || Math.abs(ev.clientY-(Voice.startY||0))>14){
-    Voice.pressing=false; Voice.longPress=false; clearTimeout(Voice.timer);
-    if(Voice.active) stopVoice();
-  }
-});
-function endVoicePress(){
-  if(!Voice.pressing) return;
-  Voice.pressing=false; clearTimeout(Voice.timer);
-  if(Voice.longPress){
-    Voice.longPress=false;
-    Voice.suppressUntil=Date.now()+1600;
-    if(Voice.active) stopVoice();
-  }
-}
-document.addEventListener("pointerup", endVoicePress);
-document.addEventListener("pointercancel", endVoicePress);
-
 var VersionPress={pressing:false,longPress:false,timer:null,startX:0,startY:0,suppressUntil:0};
 document.addEventListener("pointerdown",function(ev){
   var btn=ev.target.closest && ev.target.closest('[data-act="versionPress"]');
@@ -2237,10 +2070,8 @@ document.addEventListener("click", async function(ev){
   if(act==="editorBack"){ goBack(); return; }
   if(act==="closeSheet"){ state.quickMenu=false; state.sheet=null; state.editor=null; state.bb=null; renderSheet(); return; }
   if(act==="openPaste"){
-    if(Date.now()<Voice.suppressUntil) return;
     openPaste(); return;
   }
-  if(act==="voiceStop"){ stopVoice(); return; }
   if(act==="pasteClip"){
     var ta=document.getElementById("pasteInput");
     function fillClip(t){
