@@ -35,7 +35,7 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .dh{height:32px;flex:0 0 32px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;background:#F2F2F7}
 .day.today .dh{background:#1F4FD8;color:#fff}
 .day.future .dh{background:#F2F2F7}
-.day.rest{background:#FAF5EB}
+.day.rest{background:var(--rest-bg)}
 .day.rest .dh{background:#F0E7D7}
 .dnum{font-size:15px;font-weight:700;line-height:1}
 .dwk{font-size:9.5px;opacity:.85}
@@ -77,7 +77,7 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .sclose{font-size:15px;color:#1F4FD8;padding:6px}
 textarea,input,select{font-family:inherit;font-size:16px;color:#1C1C1E;outline:none}
 textarea:focus,input:focus,select:focus{outline:none;box-shadow:none}
-.pastebox{width:100%;min-height:150px;border:1px solid #E5E5EA;border-radius:14px;padding:12px;background:#FAFAFC;resize:vertical;line-height:1.55}
+.pastebox{width:100%;min-height:210px;border:1px solid #E5E5EA;border-radius:14px;padding:12px;background:#FAFAFC;resize:vertical;line-height:1.55}
 .mini{height:38px;padding:0 14px;border-radius:10px;border:1px solid #E5E5EA;background:#fff;color:#1F4FD8;font-size:13px;font-family:inherit}
 .mini.primary{background:#1F4FD8;border-color:#1F4FD8;color:#fff}
 .mini.ghost{color:#6B6B70}
@@ -142,7 +142,8 @@ textarea:focus,input:focus,select:focus{outline:none;box-shadow:none}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 
 /* ================= v13 视觉系统：只改观感，不缩小八日格 ================= */
-:root{--bg:#F5F5F7;--card:#FFFFFF;--ink:#1C1C1E;--muted:#8E8E93;--blue:#3157D5;--line:#E9E9EE;--danger:#E5484D}
+:root{--bg:#F5F5F7;--card:#FFFFFF;--ink:#1C1C1E;--muted:#8E8E93;--blue:#3157D5;--line:#E9E9EE;--danger:#E5484D;--accent-soft:#EAF0FF;--accent-softer:#F5F7FF;--accent-line:#DCE5FF;--rest-bg:#FAF5EB;--today-shadow:0 4px 14px rgba(49,87,213,.18)}
+html[data-theme="pink"]{--bg:#FBF3F6;--card:#FFFFFF;--ink:#1C1C1E;--muted:#8E8E93;--blue:#E2699A;--line:#F0E2E9;--danger:#E5484D;--accent-soft:#FBE9F1;--accent-softer:#FDF3F7;--accent-line:#F3D3E1;--rest-bg:#F1ECFA;--today-shadow:0 4px 14px rgba(226,105,154,.22)}
 html,body{background:var(--bg)}
 button{font-family:inherit;-webkit-tap-highlight-color:transparent}
 button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.45);outline-offset:2px}
@@ -168,12 +169,12 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .day:active{transform:scale(.985)}
 .dh{height:32px;flex:0 0 32px;background:transparent;padding:0 8px}
 .day .dh,.day.future .dh{background:transparent}
-.day.today{background:var(--blue);border-color:var(--blue);box-shadow:0 4px 14px rgba(49,87,213,.18)}
+.day.today{background:var(--blue);border-color:var(--blue);box-shadow:var(--today-shadow)}
 .day.today .dh{background:transparent;color:#fff}
 .day.today .tt,.day.today .ti,.day.today .ak,.day.today .ak.occur,.day.today .ak.due,.day.today .more{color:#fff}
 .day.today .tt,.day.today .ak{opacity:.82}
 .day.today .ti{opacity:1}
-.day.rest{background:#FAF5EB}
+.day.rest{background:var(--rest-bg)}
 .day.rest .dh{background:transparent}
 .db{padding:7px 6px 6px}
 .ti{font-weight:500}
@@ -200,11 +201,11 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .mini.ghost{color:#6B6B70;background:#ECECF1;border-color:transparent}
 .rowbtns{gap:9px;margin-top:12px}
 .pcard{border:1px solid var(--line);border-radius:16px;box-shadow:0 2px 7px rgba(20,24,40,.035)}
-.pcard.sel{border-color:var(--blue);background:#F6F8FF;box-shadow:0 0 0 1px var(--blue) inset}
+.pcard.sel{border-color:var(--blue);background:var(--accent-softer);box-shadow:0 0 0 1px var(--blue) inset}
 .pcard.sel .pcheck{background:var(--blue);border-color:var(--blue)}
-.chip.blue{background:#EAF0FF;color:var(--blue)}
+.chip.blue{background:var(--accent-soft);color:var(--blue)}
 .act{min-height:32px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:#fff;display:inline-flex;align-items:center;justify-content:center;gap:4px;color:#5E5E64}
-.act.blue{color:var(--blue);border-color:#DCE5FF;background:#F5F7FF}
+.act.blue{color:var(--blue);border-color:var(--accent-line);background:var(--accent-softer)}
 .act.red{color:var(--danger);border-color:#F6D2D4;background:#FFF8F8}
 .act.icon-only{width:36px;padding:0}
 .actions{align-items:center}
@@ -222,10 +223,10 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .seg button.on{background:#fff;color:#1C1C1E;font-weight:500;box-shadow:0 2px 6px rgba(0,0,0,.13),0 .5px 1.5px rgba(0,0,0,.08)}
 .prio-seg button[data-v="0"].on{color:#C93A3A;font-weight:600}
 .prio-seg button[data-v="2"].on{color:#6B6B70}
-.mapbtn{display:inline-flex;align-items:center;gap:3px;background:#EAF0FF;color:var(--blue);border-radius:9px;padding:5px 8px}
+.mapbtn{display:inline-flex;align-items:center;gap:3px;background:var(--accent-soft);color:var(--blue);border-radius:9px;padding:5px 8px}
 .chunk{background:#ECECF1;border-radius:11px}
 .chunk.on{background:var(--blue)}
-.cand{background:#EAF0FF;color:var(--blue)}
+.cand{background:var(--accent-soft);color:var(--blue)}
 .editor-head{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;width:100%}
 .editor-head .stitle{text-align:center}
 .editor-head .icon-btn{margin:-8px}
@@ -255,12 +256,12 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .quick-item:active{background:#F0F0F4}
 .quick-item .ic{font-size:20px;color:#5E5E64}
 .quick-item .qtext{flex:1}
-.quick-count{font-size:11px;min-width:20px;height:20px;line-height:20px;text-align:center;border-radius:10px;background:#EAF0FF;color:var(--blue);font-weight:600}
+.quick-count{font-size:11px;min-width:20px;height:20px;line-height:20px;text-align:center;border-radius:10px;background:var(--accent-soft);color:var(--blue);font-weight:600}
 @keyframes menuIn{from{opacity:0;transform:scale(.94) translateY(-5px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .edge-dragging{transition:none!important;animation:none!important;will-change:transform;touch-action:none}
 .edge-settle{transition:transform .26s cubic-bezier(.32,.72,0,1)!important;animation:none!important;will-change:transform}
 .version-area{margin:18px 4px 4px;text-align:left}
-.version-btn{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:0;border-radius:11px;background:#EAF0FF;color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.2px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.version-btn{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:0;border-radius:11px;background:var(--accent-soft);color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.2px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .version-btn:active{transform:scale(.96)}
 .version-hint{font-size:11px;color:#8E8E93;margin:7px 0 8px;line-height:1.5}
 .version-hero{padding:16px 16px 15px;background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:10px}
@@ -1043,8 +1044,13 @@ var DEF_SETTINGS = {
   weekOneMonday:"2026-08-31",
   oddEvenStart:"odd",
   semesterName:"2026 秋季学期",
+  theme:"blue",
   lastExport:null
 };
+function applyTheme(){
+  var t=state.settings.theme==="pink"?"pink":"blue";
+  document.documentElement.setAttribute("data-theme",t);
+}
 function loadSettings(){
   try{ return Object.assign({}, DEF_SETTINGS, JSON.parse(localStorage.getItem("rige_settings")||"{}")); }
   catch(e){ return Object.assign({}, DEF_SETTINGS); }
@@ -1144,7 +1150,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.5.1";
+var APP_VERSION = "V1.6";
 var state = {
   view:"home",
   quickMenu:false,
@@ -1276,7 +1282,7 @@ function renderHome(){
     +'</div>'
     +'<div class="mid"><div class="grid">'+cells+'</div></div>'
     +'<div class="bottom">'
-    +'<button class="btn composer" data-act="openPaste" aria-label="粘贴或说话" title="粘贴或说话">'+icon("clipboard",21)+'<span>粘贴或说话</span></button>'
+    +'<button class="btn composer" data-act="openPaste" aria-label="输入" title="输入">'+icon("edit",21)+'<span>输入</span></button>'
     +'</div>';
 }
 function dayCard(d, ds, items, isToday, isFuture){
@@ -1363,7 +1369,7 @@ function renderInbox(){
   }
   return '<div class="nav"><button class="icon-btn back" data-act="backHome" aria-label="返回主页" title="返回主页">'+icon("back",25)+'</button><span class="nt">收件箱</span></div>'
     +'<div class="scroll">'
-    +(ib.overdue.length?'<div class="sect"><span>逾期</span><span>'+ib.overdue.length+'</span></div>'+ib.overdue.map(function(t){return item(t,"overdue");}).join(""):"")
+    +(ib.overdue.length?'<div class="sect"><span>逾期</span><button class="act red icon-only" data-act="delOverdue" aria-label="删除全部逾期任务" title="删除全部逾期任务">'+icon("trash",16)+'</button></div>'+ib.overdue.map(function(t){return item(t,"overdue");}).join(""):"")
     +(ib.undated.length?'<div class="sect"><span>待安排</span><span>'+ib.undated.length+'</span></div>'+ib.undated.map(function(t){return item(t,"undated");}).join(""):"")
     +(ib.refs.length?'<div class="sect"><span>参考</span><span>'+ib.refs.length+'</span></div>'+ib.refs.map(function(t){return item(t,"refs");}).join(""):"")
     +(!ib.undated.length&&!ib.overdue.length&&!ib.refs.length?'<div class="empty">收件箱是空的<br>粘贴的通知如果没识别出日期，会先落在这里</div>':"")
@@ -1373,6 +1379,8 @@ function renderSettings(){
   var s=state.settings;
   return '<div class="nav"><button class="icon-btn back" data-act="backHome" aria-label="返回主页" title="返回主页">'+icon("back",25)+'</button><span class="nt">设置</span></div>'
     +'<div class="scroll">'
+    +'<div class="sect"><span>外观</span></div>'
+    +'<div class="field"><label>主题</label><select id="s_theme"><option value="blue"'+(s.theme!=="pink"?" selected":"")+'>默认蓝</option><option value="pink"'+(s.theme==="pink"?" selected":"")+'>浅粉</option></select></div>'
     +'<div class="sect"><span>教学周</span></div>'
     +'<div class="field"><label>第 1 周的周一</label><input type="date" id="s_week" value="'+esc(s.weekOneMonday)+'"></div>'
     +'<div class="field"><label>单双周起点</label><select id="s_oddeven"><option value="odd"'+(s.oddEvenStart==="odd"?" selected":"")+'>第 1 周是单周</option><option value="even"'+(s.oddEvenStart==="even"?" selected":"")+'>第 1 周是双周</option></select></div>'
@@ -1445,12 +1453,14 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["语音输入换系统通道","移除了内置的长按语音识别——网页听写准确率差是平台限制，改不掉。现在点按底部按钮直接聚焦输入框并弹出键盘，点键盘上的麦克风说话，用苹果系统级听写，识别准得多。"],
-    ["按钮更简洁","底部按钮只保留一个「粘贴或说话」，长按说话、麦克风图标、听写提示条都去掉了。"],
-    ["数据与界面不变","V1.5 的保存可靠性、防重复提交等修复都保留，八日格和解析规则不变。"]
+    ["浅粉主题","设置里新增主题切换：浅粉主题下今天卡片变成浅粉色，解析按钮、标签底色、收件箱角标等细节同步变粉；周六日卡片用淡薰衣草紫区分。默认蓝主题不变。"],
+    ["语音输入简化","底部按钮改为「输入」，点按直接弹出键盘；在键盘上点麦克风说话，走苹果系统听写，识别更准。长按说话功能已移除。"],
+    ["输入框更宽敞","粘贴页去掉了顶部标题和关闭按钮，白色输入框加大、更贴近顶部短灰条；下滑灰条或点遮罩关闭。"],
+    ["逾期一键清理","收件箱「逾期」区右上角的数字改成了删除按钮，点一下并确认即可清空全部逾期任务。"],
+    ["数据与规则不变","八日格结构、解析规则、任务数据都没动，主题偏好会随备份一起导出导入。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">语音输入改用系统听写</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">浅粉主题与输入优化</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无模型、无云同步。删除主屏图标或清除浏览器网站数据前，请先导出备份。</div>';
 }
@@ -1482,7 +1492,7 @@ function sheetPaste(){
       +'<div class="phint" id="draftHint">'+(selN?(d.length>1?'已选 '+selN+' 条，点下面按钮加入':'已选中，可直接点下面按钮加入'):(d.length>1?'点卡片空白处选中任务，可只选一条，也可两条都选':'点卡片空白处选中任务，再点下面按钮加入'))+'</div>'
       +'<div class="rowbtns"><button class="mini ghost" data-act="reparse">'+icon("rotate",16)+'重贴</button><button class="mini primary" id="addDraftsBtn" data-act="addDrafts"'+(selN?'':' disabled')+'>加入选中'+(selN?' · '+selN:'')+'</button></div>';
   }
-  return sheetHead(state.drafts?"解析结果":"粘贴")+body;
+  return (state.drafts?sheetHead("解析结果"):'<div class="grabber"></div>')+body;
 }
 function fmtShortDate(s){
   var d=new Date(s+"T00:00:00");
@@ -2257,6 +2267,18 @@ document.addEventListener("click", async function(ev){
     state.tasks=state.tasks.filter(function(x){return x.id!==did2;});
     render(); return;
   }
+  if(act==="delOverdue"){
+    var ov=inboxTasks().overdue;
+    if(!ov.length) return;
+    if(!confirm("删除全部 "+ov.length+" 条逾期任务？")) return;
+    var ids=ov.map(function(t){return t.id;});
+    var delOk=0;
+    for(var oi=0;oi<ids.length;oi++){ if(await deleteStoredTask(ids[oi])) delOk++; }
+    state.tasks=state.tasks.filter(function(x){return ids.indexOf(x.id)<0;});
+    render();
+    toast("已删除 "+delOk+" 条逾期任务");
+    return;
+  }
   if(act==="addHere"){
     var date=el.dataset.date==="future"?null:el.dataset.date;
     var blank={id:"",title:"新任务",raw:"",note:"",agenda:[],anchor:"due",date:date,time:null,endTime:null,place:"",category:"个人",tags:[],priority:1,status:"todo",doneAt:null,leadDays:null,repeat:null,source:"manual",relevant:true,reference:false,batchId:"",createdAt:Date.now(),updatedAt:Date.now()};
@@ -2290,6 +2312,7 @@ document.addEventListener("change", function(ev){
   var id=ev.target.id, v=ev.target.value;
   if(id==="s_week"){ state.settings.weekOneMonday=v; saveSettings(); render(); }
   else if(id==="s_oddeven"){ state.settings.oddEvenStart=v; saveSettings(); render(); }
+  else if(id==="s_theme"){ state.settings.theme=v==="pink"?"pink":"blue"; saveSettings(); applyTheme(); }
   else if(id==="importFile"){
     var f=ev.target.files&&ev.target.files[0]; if(!f) return;
     if(f.size>5*1024*1024){ toast("备份文件不能超过 5 MB"); ev.target.value=""; return; }
@@ -2372,6 +2395,7 @@ function sanitizeImportedSettings(raw){
   if(!raw || typeof raw!=="object") return;
   if(validDateString(raw.weekOneMonday)) state.settings.weekOneMonday=raw.weekOneMonday;
   if(raw.oddEvenStart==="odd"||raw.oddEvenStart==="even") state.settings.oddEvenStart=raw.oddEvenStart;
+  if(raw.theme==="blue"||raw.theme==="pink") state.settings.theme=raw.theme;
   if(typeof raw.semesterName==="string") state.settings.semesterName=raw.semesterName.slice(0,40);
   if(Number.isFinite(+raw.lastExport)) state.settings.lastExport=+raw.lastExport;
 }
@@ -2416,6 +2440,7 @@ async function boot(){
   await Store.init();
   state.tasks=await Store.all();
   await migrateTaskPriorities();
+  applyTheme();
   render();
 }
 if(typeof document!=="undefined" && document.getElementById) boot();
