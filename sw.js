@@ -2,14 +2,16 @@
  * 部署新版本时：改 CACHE_NAME 里的版本号（例如 v13-1），再发布。
  * 不要给 sw.js 设置长缓存；建议 Cache-Control: no-cache。
  */
-const CACHE_NAME = "rige-pwa-v1-8-1";
+const CACHE_NAME = "rige-pwa-v1-8-2";
 const APP_SHELL = [
   "./index.html",
   "./manifest.webmanifest",
   "./icons/icon-180.png",
+  "./icons/icon-180-pink.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icons/favicon-32.png"
+  "./icons/favicon-32.png",
+  "./icons/favicon-32-pink.png"
 ];
 
 self.addEventListener("install", (event) => {
