@@ -1234,7 +1234,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.8.2";
+var APP_VERSION = "V1.8.3";
 var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
@@ -1539,13 +1539,12 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["阿尔戈斯 1.5","解析模型升级：新增任务粒度回判，不再只会「切」，学会了「合」。寒暄铺垫并进备注、「明天下班前发给我」这类交付从句把期限并回主任务——一条柔性通知，一条干净任务。"],
-    ["模型档案卡","设置页版本号旁的「阿耳戈斯」徽标，长按可查看模型档案：它是什么、会什么、守什么。"],
-    ["专项测试固化","新增 22 条柔性请求类专项用例（含你遇到的那条通知），与原有 400 条回归一起守护模型质量。"],
-    ["数据与规则不变","八日格结构、任务数据、备份方式都没动；1.5 的解析对老通知零扰动，全部旧行为逐字节一致。"]
+    ["粉色主题图标","新增粉色版应用图标，与浅粉主题配套。切换到粉色主题时，添加到主屏的图标就是粉色八日格。"],
+    ["图标换装方法","把主题切到粉色后，删掉主屏上的旧图标、重新「添加到主屏幕」，新图标即为粉色；切回蓝色主题重装即还原。"],
+    ["版本号与模型号","设置页现在分别显示应用版本号和「阿耳戈斯」模型号：应用小更新不动模型号，只有解析模型升级才动。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">阿尔戈斯 1.5 · 解析模型升级</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">粉色主题图标 · 小更新</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
 }
