@@ -45,7 +45,7 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .dot.p0{background:#E5484D}
 .dot.p1{background:#B8B8BF}
 .dot.p2{background:#D8D8DE}
-.day.today .dot.p0{background:#E5484D}
+.day.today .dot.p0{background:#FFFFFF;box-shadow:0 0 0 1.5px rgba(0,0,0,.14)}
 .day.today .dot.p1{background:rgba(255,255,255,.62)}
 .day.today .dot.p2{background:rgba(255,255,255,.34)}
 .p0tag,.p2tag{display:inline-block;font-size:7.5px;line-height:9px;font-weight:700;padding:0 1.5px;border-radius:3px;vertical-align:1px}
@@ -78,6 +78,11 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 textarea,input,select{font-family:inherit;font-size:16px;color:#1C1C1E;outline:none}
 textarea:focus,input:focus,select:focus{outline:none;box-shadow:none}
 .pastebox{width:100%;min-height:210px;border:1px solid #E5E5EA;border-radius:14px;padding:12px;background:#FAFAFC;resize:vertical;line-height:1.55}
+.importbox{display:flex;gap:8px;align-items:stretch;margin:0 4px}
+.importbox textarea{flex:1;min-width:0;min-height:80px;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--card);color:var(--ink);font-family:inherit;font-size:13.5px;line-height:1.5;resize:none}
+.importbox textarea:focus{outline:none;border-color:var(--blue)}
+.importplus{width:46px;min-height:80px;border-radius:14px;border:1.5px dashed var(--line);background:var(--accent-softer);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.importplus:active{transform:scale(.94)}
 .mini{height:38px;padding:0 14px;border-radius:10px;border:1px solid #E5E5EA;background:#fff;color:#1F4FD8;font-size:13px;font-family:inherit}
 .mini.primary{background:#1F4FD8;border-color:#1F4FD8;color:#fff}
 .mini.ghost{color:#6B6B70}
@@ -1150,7 +1155,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.6";
+var APP_VERSION = "V1.7";
 var state = {
   view:"home",
   quickMenu:false,
@@ -1385,8 +1390,8 @@ function renderSettings(){
     +'<div class="field"><label>第 1 周的周一</label><input type="date" id="s_week" value="'+esc(s.weekOneMonday)+'"></div>'
     +'<div class="field"><label>单双周起点</label><select id="s_oddeven"><option value="odd"'+(s.oddEvenStart==="odd"?" selected":"")+'>第 1 周是单周</option><option value="even"'+(s.oddEvenStart==="even"?" selected":"")+'>第 1 周是双周</option></select></div>'
     +'<div class="sect"><span>数据</span></div>'
-    +'<div class="rowbtns"><button class="mini" data-act="export">'+icon("download",16)+'导出</button><button class="mini" data-act="copy">'+icon("copy",16)+'复制</button></div>'
-    +'<div class="rowbtns"><button class="mini" data-act="importBtn">'+icon("upload",16)+'导入</button><button class="mini ghost" data-act="clear">'+icon("trash",16)+'清空</button></div>'
+    +'<div class="rowbtns"><button class="mini" data-act="share">'+icon("upload",16)+'分享备份</button><button class="mini ghost" data-act="clear">'+icon("trash",16)+'清空</button></div>'
+    +'<div class="importbox"><textarea id="importText" placeholder="换机迁移：把备份码粘贴到这里，或点右侧 + 选择备份文件" aria-label="粘贴备份码"></textarea><button class="importplus" data-act="importBtn" aria-label="选择备份文件" title="选择备份文件">'+icon("plus",20)+'</button></div>'
     +'<input type="file" id="importFile" accept="application/json,.json" style="display:none">'
     +'<div class="trmeta" style="margin:12px 4px">共 '+state.tasks.length+' 条任务。上次备份：'+(s.lastExport?new Date(s.lastExport).toLocaleDateString():'还没备份过')+'</div>'
     +'<div class="version-area"><button class="version-btn" data-act="versionPress" aria-label="版本 '+APP_VERSION+'，长按查看更新详情">'+APP_VERSION+'</button>'
@@ -1453,14 +1458,14 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["浅粉主题","设置里新增主题切换：浅粉主题下今天卡片变成浅粉色，解析按钮、标签底色、收件箱角标等细节同步变粉；周六日卡片用淡薰衣草紫区分。默认蓝主题不变。"],
-    ["语音输入简化","底部按钮改为「输入」，点按直接弹出键盘；在键盘上点麦克风说话，走苹果系统听写，识别更准。长按说话功能已移除。"],
-    ["输入框更宽敞","粘贴页去掉了顶部标题和关闭按钮，白色输入框加大、更贴近顶部短灰条；下滑灰条或点遮罩关闭。"],
-    ["逾期一键清理","收件箱「逾期」区右上角的数字改成了删除按钮，点一下并确认即可清空全部逾期任务。"],
-    ["数据与规则不变","八日格结构、解析规则、任务数据都没动，主题偏好会随备份一起导出导入。"]
+    ["换机备份码","设置页「分享备份」一键生成一段短码并复制，粘贴到微信发给新设备；在新设备的设置页把码粘贴进导入框即完成迁移，不再需要传文件。"],
+    ["数据多自动转文件","任务太多、短码超长时，分享备份会自动改为下载 .json 备份文件，导入框右侧的 + 号仍可上传文件。"],
+    ["粘贴即导入","导入框支持直接粘贴：粘贴备份码或旧版 JSON 文本都会自动开始导入并显示结果。"],
+    ["粉主题红点修复","浅粉主题下「今天」卡片里的红点换成白色带描边，不再和粉色卡片混在一起；蓝色主题不变。"],
+    ["数据与规则不变","八日格结构、解析规则、任务数据都没动，旧版备份文件仍可导入。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">浅粉主题与输入优化</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">换机备份与可读性修复</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无模型、无云同步。删除主屏图标或清除浏览器网站数据前，请先导出备份。</div>';
 }
@@ -2292,8 +2297,7 @@ document.addEventListener("click", async function(ev){
   if(act==="backHome"){ state.quickMenu=false; state.view="home"; render(); return; }
   if(act==="openInbox"){ state.quickMenu=false; state.view="inbox"; render(); return; }
   if(act==="openSettings"){ state.quickMenu=false; state.view="settings"; render(); return; }
-  if(act==="export"){ exportData(); return; }
-  if(act==="copy"){ copyData(); return; }
+  if(act==="share"){ shareBackup(); return; }
   if(act==="importBtn"){ var f=document.getElementById("importFile"); if(f) f.click(); return; }
   if(act==="clear"){
     if(!confirm("清空全部任务？这个操作不能撤销。")) return;
@@ -2316,18 +2320,22 @@ document.addEventListener("change", function(ev){
   else if(id==="importFile"){
     var f=ev.target.files&&ev.target.files[0]; if(!f) return;
     if(f.size>5*1024*1024){ toast("备份文件不能超过 5 MB"); ev.target.value=""; return; }
-    if(state.importing){ toast("正在导入，请稍候"); return; }
     var rd=new FileReader();
-    rd.onload=async function(){
-      try{
-        var data=JSON.parse(rd.result);
-        var result=await importBackupData(data);
-        if(result) render();
-      }catch(e){ toast(e.message==="备份任务过多"?"导入失败：最多支持 5000 条任务":"导入失败，文件格式不对"); }
-    };
+    rd.onload=function(){ importFromText(rd.result); };
     rd.onerror=function(){ toast("读取备份文件失败"); };
     rd.readAsText(f);
     ev.target.value="";
+  }
+});
+
+document.addEventListener("paste", function(ev){
+  var el=ev.target;
+  if(el&&el.id==="importText"){
+    var text=(ev.clipboardData||window.clipboardData).getData("text");
+    if(!text||!text.trim()) return;
+    ev.preventDefault();
+    el.value=text.trim();
+    importFromText(text);
   }
 });
 
@@ -2399,26 +2407,85 @@ function sanitizeImportedSettings(raw){
   if(typeof raw.semesterName==="string") state.settings.semesterName=raw.semesterName.slice(0,40);
   if(Number.isFinite(+raw.lastExport)) state.settings.lastExport=+raw.lastExport;
 }
-async function exportData(){
-  var data={version:2,priorityModel:2,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),settings:state.settings,tasks:state.tasks};
-  var str=JSON.stringify(data,null,2);
+function backupPayload(){ return {version:2,priorityModel:2,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),settings:state.settings,tasks:state.tasks}; }
+function copyText(str,ok,fail){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(str).then(ok,fail);
+  }else{
+    var ta=document.createElement("textarea"); ta.value=str; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); ok(); }catch(e){ fail(); }
+    ta.remove();
+  }
+}
+function bytesToBase64Url(bytes){
+  var bin="", CH=0x8000;
+  for(var i=0;i<bytes.length;i+=CH){ bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH)); }
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function base64UrlToBytes(s){
+  s=s.replace(/-/g,"+").replace(/_/g,"/");
+  while(s.length%4) s+="=";
+  var bin=atob(s), bytes=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return bytes;
+}
+async function makeBackupCode(json){
+  var bytes=new TextEncoder().encode(json);
+  if(window.CompressionStream){
+    var cs=new CompressionStream("deflate-raw");
+    bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(cs)).arrayBuffer());
+  }
+  return "RG1."+bytesToBase64Url(bytes);
+}
+async function parseBackupText(str){
+  str=(str||"").trim();
+  if(!str) throw new Error("空的备份内容");
+  if(str.indexOf("RG1.")===0){
+    var bytes=base64UrlToBytes(str.slice(4));
+    if(window.DecompressionStream){
+      var ds=new DecompressionStream("deflate-raw");
+      str=await new Response(new Blob([bytes]).stream().pipeThrough(ds)).text();
+    }else{
+      str=new TextDecoder().decode(bytes);
+    }
+  }
+  return JSON.parse(str);
+}
+function downloadBackupFile(){
+  var str=JSON.stringify(backupPayload(),null,2);
   var blob=new Blob([str],{type:"application/json"});
   var a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
   a.download="日格备份-"+fmtYMD(new Date())+".json";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function(){ URL.revokeObjectURL(a.href); },3000);
-  state.settings.lastExport=Date.now(); saveSettings(); toast("已导出备份");
 }
-function copyData(){
-  var data={version:2,priorityModel:2,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),settings:state.settings,tasks:state.tasks};
-  var str=JSON.stringify(data);
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(str).then(function(){ toast("备份已复制"); },function(){ toast("复制失败"); });
+async function shareBackup(){
+  var json=JSON.stringify(backupPayload());
+  var code=null;
+  try{ code=await makeBackupCode(json); }catch(e){}
+  state.settings.lastExport=Date.now(); saveSettings();
+  if(code&&code.length<=4000){
+    copyText(code,
+      function(){ toast("备份码已复制，粘贴到微信发给新设备"); },
+      function(){ toast("复制失败，请长按版本号旁重新分享"); });
   }else{
-    var ta=document.createElement("textarea"); ta.value=str; document.body.appendChild(ta); ta.select();
-    try{ document.execCommand("copy"); toast("备份已复制"); }catch(e){ toast("复制失败"); }
-    ta.remove();
+    downloadBackupFile();
+    toast("数据较多，已生成备份文件下载");
+  }
+}
+async function importFromText(str){
+  if(state.importing){ toast("正在导入，请稍候"); return; }
+  try{
+    var data=await parseBackupText(str);
+    var result=await importBackupData(data);
+    if(result){
+      render();
+      var el=document.getElementById("importText"); if(el) el.value="";
+    }
+  }catch(e){
+    toast(e.message==="备份任务过多"?"导入失败：最多支持 5000 条任务":"导入失败，备份码或文件格式不对");
   }
 }
 
