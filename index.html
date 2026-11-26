@@ -269,6 +269,7 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .version-btn{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:0;border-radius:11px;background:var(--accent-soft);color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.2px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .version-btn:active{transform:scale(.96)}
 .version-hint{font-size:11px;color:#8E8E93;margin:7px 0 8px;line-height:1.5}
+.argus-badge{margin-left:8px;background:var(--accent-soft);color:var(--blue);border:1px solid var(--accent-line)}
 .version-hero{padding:16px 16px 15px;background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:10px}
 .version-big{font-size:28px;line-height:1.2;font-weight:750;color:var(--blue);letter-spacing:-.4px}
 .version-sub{font-size:12px;color:#8E8E93;margin-top:6px}
@@ -298,7 +299,8 @@ var OBJ = [
 ["作业","作业"],["材料","材料"],["表格","表格"],["名单","名单"],
 ["总结","总结"],["方案","方案"],["计划","计划"],["聘书","聘书"],
 ["公开课","公开课"],["课题报告","课题报告"],["报告","报告"],["课题","课题"],["升旗仪式","升旗"],["监考","监考"],
-["培训","培训"],["会议","会议"],["教研活动","教研"],["研训活动","研训"],["教研","教研"],["数学课","数学课"],["听课","听课"],["监考","监考"],["统计表","统计表"],["记录","记录"],["复查","复查"],["体检","体检"],["买菜","买菜"],["保养车","保养车"],["房产证","房产证"],["运动会带队","运动会带队"],["家长会回执","回执"]
+["培训","培训"],["会议","会议"],["教研活动","教研"],["研训活动","研训"],["教研","教研"],["数学课","数学课"],["听课","听课"],["监考","监考"],["统计表","统计表"],["记录","记录"],["复查","复查"],["体检","体检"],["买菜","买菜"],["保养车","保养车"],["房产证","房产证"],["运动会带队","运动会带队"],["家长会回执","回执"],
+["家访记录表","家访记录表"],["记录表","记录表"],["亲子阅读照片","照片"],["阅读照片","照片"],["照片","照片"],["人数","人数"],["截图","截图"],["健康码","健康码"],["体测","体测"],["教学反思","反思"],["感想","感想"],["看班","看班"]
 ];
 var VERB = [
 ["提交","交"],["上交","交"],["报送","交"],["上报","交"],["交","交"],
@@ -306,7 +308,7 @@ var VERB = [
 ["收齐","收"],["收集","收"],["收","收"],["批改","改"],["统计","统计"],
 ["参加","参加"],["出席","出席"],["前往","去"],["抵达","到"],["到","到"],["去","去"],["开会","开"],["打印","打印"],["复印","复印"],
 ["上传","传"],["审核","审"],["填报","填"],["检查","查"],["安排","排"],
-["讲","讲"],["试讲","试讲"],["读","读"],["朗读","朗读"],["阅读","阅读"],["念","念"],["说课","说课"],["汇报","汇报"],["展示","展示"],["执教","执教"],["分享","分享"],["发言","发言"],["开","开"],["听","听"],["观摩","观摩"],["办","办"],["领","领"],["取","取"],["拿","拿"],["复查","复查"],["体检","体检"],["买菜","买菜"],["保养","保养"],["带队","带队"]
+["讲","讲"],["试讲","试讲"],["写","写"],["撰写","写"],["填写","填"],["读","读"],["朗读","朗读"],["阅读","阅读"],["念","念"],["说课","说课"],["汇报","汇报"],["展示","展示"],["执教","执教"],["分享","分享"],["发言","发言"],["开","开"],["听","听"],["观摩","观摩"],["办","办"],["领","领"],["取","取"],["拿","拿"],["复查","复查"],["体检","体检"],["买菜","买菜"],["保养","保养"],["带队","带队"]
 ];
 var WD_MAP = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"日":0,"天":0};
 var WD_CN = ["周日","周一","周二","周三","周四","周五","周六"];
@@ -507,7 +509,7 @@ function parsePlace(str){
   if(m){ var pd=cleanPlace(m[1]); if(pd) return pd; }
   m=str.match(/(?:送至|送到)\s*([^，,。；;\n]{2,30})/);
   if(m){ var ps=cleanPlace(m[1]); if(ps) return ps; }
-  m=str.match(/在([^，,。；;\n]{2,30}?)(?=开会|召开|举行|开教研会|开教研|开家长会|开班会|开年级家长会|开学|开展|组织|值日|参加|出席|集合|集中|进行|报到|上课|教研|培训|活动|升旗|体检|复查|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|过一遍|过一下|过|交|提交|做|写|取药|拿|听课|玩)/);
+  m=str.match(/在([^，,。；;\n]{2,30}?)(?=开会|召开|举行|开教研会|开教研|开家长会|开班会|开年级家长会|开学|开展|组织|值日|参加|出席|集合|集中|进行|报到|上课|教研|培训|活动|升旗|体检|复查|试讲|说课|朗读|阅读|读|念|听|讲|汇报|展示|执教|分享|发言|过一遍|过一下|过|交|提交|做|写|取药|拿|听课|玩)/);
   if(m){ var p2=cleanPlace(m[1]); if(p2) return p2; }
   m=str.match(/([^，,。；;\n]{2,20}?)(?:召开|举行|开展)(?=[^，,。；;\n]{0,8}(?:家长会|会议|活动|培训|教研))$/);
   if(m){ var pEvent=cleanPlace(m[1]); if(pEvent) return pEvent; }
@@ -522,12 +524,13 @@ function parsePlace(str){
 function decideAnchor(str, meta){
   str=normalizeText(str);
   meta = meta||{};
-  var attend=/开会|参加|出席|听课|教研|培训|监考|值日|例会|升旗|家访|上课|参会|观摩|研讨|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|到|去|前往|抵达|集合|集中|报到|处理|沟通|组织|聚餐|家长会|运动会|比赛|研学/.test(str);
+  var attendStr=str.replace(/(?:发到|交到|送到|发送给|报给|发给|还给|上传给)/g,"");
+  var attend=/开会|参加|出席|听课|教研|培训|监考|值日|例会|升旗|家访|上课|参会|观摩|研讨|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|到|去|前往|抵达|集合|集中|报到|处理|沟通|组织|聚餐|家长会|运动会|比赛|研学|体测|看班|看操/.test(attendStr);
   var deliver=/交|提交|上交|报送|上报|完成|填报|上传|审核|准备|整理|收齐|收集|统计|批改|打印|复印|领取|取|发|发送|发给|发到/.test(str);
-  var duePre=/(之前|以前|截止|请于|务必在|前完成|前交|前上交|前提交|前上报|前报送|前收齐|前报到|前签到|前集合|前到达)/.test(str) ||
+  var duePre=/(之前|以前|截止|请于|务必在|放学前|下班前|课前|会前|前完成|前交|前上交|前提交|前上报|前报送|前收齐|前报到|前签到|前集合|前到达)/.test(str) ||
       /(?:\d{1,2}[:：]\d{2}|\d{1,2}\s*点|\d{1,2}月\d{1,2}[日号]?|今天|明天|后天|本周[一二三四五六日天]|下周[一二三四五六日天]|周[一二三四五六日天])\s*前/.test(str);
   var arrivalDeadline=/(前报到|前签到|前集合|前到达)/.test(str);
-  var result=/(表|单|材料|回执|方案|总结|PPT|ppt|名单|记录|试卷|教案|课件|作业|证|清单|统计)/.test(str);
+  var result=/(表|单|材料|回执|方案|总结|PPT|ppt|名单|记录|试卷|教案|课件|作业|证|清单|统计|照片|截图)/.test(str);
   var prepAction=/(准备|备好|整理|过一遍|过一下|检查|修改|熟悉|练习|背|温习)/.test(str);
   var due=(duePre?(arrivalDeadline?4:3):0)+(deliver?2:0)+(result?1:0)+(prepAction?4:0);
   var occ=(attend?2:0)+((meta.place&&meta.time)?1:0)+(meta.time?1:0);
@@ -634,7 +637,7 @@ function titleOf(s, opts){
     if(t.length>12) t=t.slice(0,12);
     return t||"通知";
   }
-  var best=findObj(s);
+  var best=findObj(stripPreamblePrefix(s));
   if(best){
     var idx=s.indexOf(best[0]);
     var verb=null, vpos=-1, vlen=0;
@@ -642,6 +645,8 @@ function titleOf(s, opts){
       var term=VERB[j][0];
       var p=s.lastIndexOf(term, idx);
       if(p<0 || isVerbTailOfLonger(s,p,term)) continue;
+      // “收获与感想”里的“收”是名词修饰语不是动作，跳过这类复合词首字。
+      if(term.length===1 && /[获到集成拾]/.test(s.charAt(p+1))) continue;
       if(p>vpos || (p===vpos && term.length>vlen)){ vpos=p; vlen=term.length; verb=VERB[j][1]; }
     }
     var tt=(verb && best[1].indexOf(verb)!==0 ? verb : "")+best[1];
@@ -690,19 +695,19 @@ function isTaskish(s, base){
   if(/(平时|即可|月检)/.test(s)) return false;
   // “12月25号之前发给施胜婷”这类任务不一定有“材料/报告”等对象词，
   // 但“发给/交给/送到 + 接收人/部门”本身就是可执行动作。
-  if(/(发给|发送给|转发给|报给|交给|送到|发到|上传到)\s*[^，,。；;\s]{1,12}/.test(s) && (d.date || parseTime(s))) return true;
-  if(action.test(s) && (obj || /(家长|学生|孩子|班级|各班|校服|尺寸|矛盾|事务|接种证|回执|报名表|报名|教案|材料|PPT|课件|试卷|记录|表格|作业|会议|培训|教研|活动|任务|费用|快递|物业|房产|车|聚餐|视频|报告|课题|证明|名单|教辅|教材费|缴费|课后服务)/.test(s))) return true;
+  if(/(发给|发送给|转发给|报给|交给|送到|发到|上传到|发我|发你|发至)\s*[^，,。；;\s]{0,12}/.test(s) && (d.date || parseTime(s))) return true;
+  if(action.test(s) && (obj || /(家长|学生|孩子|班级|各班|校服|尺寸|矛盾|事务|接种证|回执|报名表|报名|教案|材料|PPT|课件|试卷|记录|表格|作业|会议|培训|教研|活动|任务|费用|快递|物业|房产|车|聚餐|视频|报告|课题|证明|名单|教辅|教材费|缴费|课后服务|反思|心得|感想)/.test(s))) return true;
   var tm=parseTime(s);
   var hasWhen=tm||d.date;
   var move=/(到|去|前往|抵达|赶到|集合|集中|报到)/.test(s);
   var place=parsePlace(s);
   if(hasWhen && move && place) return true;
   if(hasWhen && /(前|之前|以前|截止)/.test(s) && /(交|提交|上交|完成|收齐|填|上传|领取|取|报名|缴费|征订|注册)/.test(s)) return true;
-  if(hasWhen && /(家长会|班会|会议|培训|教研|升旗|监考|体检|公开课|运动会|政治学习|研究课|学习|报到|座谈会)/.test(s)) return true;
+  if(hasWhen && /(家长会|班会|会议|培训|教研|升旗|监考|体检|公开课|运动会|政治学习|研究课|学习|报到|座谈会|体测)/.test(s)) return true;
   if(action.test(s) && /(教研|培训|听课|观摩|公开课|会议|家长会|升旗|值日|监考|体检|复查|买菜|接孩子|取快递|保养车|办房产证|旅行|研究课|政治学习)/.test(s)) return true;
   // 没写日期、但动作和业务对象都明确的任务保留下来，进入“待安排”。
   if(action.test(s) && /(二课|学分|助学贷款|毕业确认|团组织|团员|招聘|就业|心理|测评|安全|课程|网络课程)/.test(s)) return true;
-  if(/(开会|集中|报到|值日|监考|体检|复查|买菜|接孩子|取快递|保养车|办房产证)/.test(s)) return true;
+  if(/(开会|集中|报到|值日|监考|体检|复查|买菜|接孩子|取快递|保养车|办房产证|看班|看操)/.test(s)) return true;
   return false;
 }
 function isNotice(t){
@@ -868,6 +873,76 @@ function mergeTaskFragments(res){
   }
   return out;
 }
+/* ===== 阿尔戈斯 1.5：任务粒度回判 =====
+   1.0 只会“切”，把一条多从句通知撕成碎片；1.5 加两道“合”的工序：
+   ① 交付从句回收——“写……感想，明天下班前发给我”里单独的“发给我”不是任务，
+     把它的截止日期并回前一条还没有日期的任务；
+   ② 寒暄/铺垫回收——“各位老师好，我正在做公众号……”这类开场白不是任务，
+     并进后面第一条有日期的任务，写进备注。 */
+function isDeliveryClause(t){
+  var s=cleanSegment(t).replace(/[，,。；;！!？?好吗呢啊呀哦啦~～\s]+$/,"");
+  if(!/(发给我|发给|发至|发送到|发送给|交给|提交给|报送|报给|私发|发到|上传给|回复给|转发给|发我|发你)/.test(s)) return false;
+  var rest=s
+    .replace(/(?:请|麻烦|烦请|务必|辛苦|大家|各位|老师|班主任|组长|主任|校长|教导处|德育处|于|在|将|把|并|后|时|内)/g,"")
+    .replace(/(发给我|发给|发至|发送到|发送给|交给|提交给|报送|报给|私发|发到|上传给|回复给|转发给|发我|发你)[^，,。；;\s]*/g,"")
+    .replace(/(今天|明天|后天|大后天|本周|下周|这周|下星期|周[一二三四五六日天]|星期[一二三四五六日天]|\d{1,2}月\d{1,2}[日号]?|\d{1,2}[日号]|上午|下午|晚上|中午|早上|早晨|傍晚|今晚|下班前|放学前|课前|会前|前|之前|以前)/g,"")
+    .replace(/[0-9:：\s，,。；;]+/g,"");
+  return rest.length<=2;
+}
+function stripPreamblePrefix(s){
+  return s
+    .replace(/^(?:各位老师好|老师们好|大家好|各位班主任好|各位家长(?:好|们好)?|亲爱的家长们|尊敬的老师)[，,]?\s*/,"")
+    .replace(/^(?:我是)?[^，,]{0,10}老师[，,]?\s*/,"")
+    .replace(/^(?:这学期|本学期|本周|下周)[，,]?\s*/,"")
+    .trim();
+}
+function isPreambleClause(s){
+  if(/^(?:各位老师好|老师们好|大家好|各位班主任好|各位家长(?:好|们好)?|亲爱的家长们|尊敬的老师)/.test(s)) return true;
+  if(/^(?:我(?:正在|现在|在)?做|我在|我需要|麻烦(?:各位|大家|老师们|班主任)|烦请|请(?:各位|大家|老师们|班主任|老师)|需要(?:各位|大家|老师们|各班班主任|参赛的?老师|与会的?老师))/.test(s)) return true;
+  return false;
+}
+function isPreambleTask(t){
+  if(t.date||t.time) return false;
+  return isPreambleClause(t.raw);
+}
+function mergeClauseTasks(res){
+  if(!res.length) return res;
+  // ① 交付从句回收
+  var out=[];
+  for(var i=0;i<res.length;i++){
+    var x=res[i];
+    if(x.date && out.length){
+      var prev=out[out.length-1];
+      if(!prev.date && !prev.rawDelivMerged && isDeliveryClause(x.raw) && !isDeliveryClause(prev.raw)){
+        prev.date=x.date;
+        if(x.time && !prev.time) prev.time=x.time;
+        if(x.endTime && !prev.endTime) prev.endTime=x.endTime;
+        if(x.anchor==="due") prev.anchor="due";
+        if(x.place && !prev.place) prev.place=x.place;
+        prev.raw=prev.raw+"，"+x.raw;
+        prev.rawDelivMerged=true;
+        prev.title=titleOf(stripPreamblePrefix(prev.raw));
+        if(x.note) prev.note=prev.note?prev.note+"；"+x.note:x.note;
+        continue;
+      }
+    }
+    out.push(x);
+  }
+  // ② 寒暄/铺垫回收：连续的铺垫句并进其后第一条有日期的任务（写入备注）
+  var out2=[], buf=[];
+  for(var j=0;j<out.length;j++){
+    var t=out[j];
+    if(!t.date && isPreambleTask(t)){ buf.push(t); continue; }
+    if(t.date && buf.length){
+      var pre=buf.map(function(b){return b.raw;}).join("；");
+      t.note=t.note?pre+"；"+t.note:pre;
+      buf=[];
+    }
+    out2.push(t);
+  }
+  for(var m=0;m<buf.length;m++) out2.push(buf[m]);
+  return out2;
+}
 function parseMulti(t, base, settings, ctx){
   ctx=ctx||{};
   t=normalizeText(t);
@@ -904,7 +979,7 @@ function parseMulti(t, base, settings, ctx){
     // 所以这里只在前半句是明确事件、后半句是交付动作时拆。
     s=s.replace(/(开(?:会|家长会|班会|教研会|年级家长会)|升旗仪式|值日)(?:并|同时|，并|，同时)(?=(?:交|收|提交|上报|报送|发|上传|完成|准备|整理|打印|复印|填|统计))/g,"$1；");
     s.split(/；|;/).forEach(function(part){
-      part.split(/(?:另外|还有|顺便|同时|此外|然后|接着|随后|之后再|以及)/).forEach(function(x){
+      part.split(/(?:另外|还有|顺便|同时|此外|然后|接着|随后|之后再)/).forEach(function(x){
         var v=x.replace(/^[，,、\s]+/,"").trim();
         if(v) segs2.push(v);
       });
@@ -920,7 +995,7 @@ function parseMulti(t, base, settings, ctx){
       var hasTime=!!parseTime(p);
       // “请家长安排时间参加”“参会教师9点前报到”是主事件的附属说明，
       // 不应各生成一张卡；只有当片段自己带时间/日期，或能独立成为一个动作时才拆。
-      var aux=!hasDate && !hasTime && /^(?:请|并|同时|然后|再|务必|准时|按时)/.test(p) && /(参加|出席|准时|到场|到会|安排时间)/.test(p);
+      var aux=!hasDate && !hasTime && /^(?:请|并|同时|然后|再|务必|准时|按时)/.test(p) && /(参加|出席|准时|到场|到会|安排时间|通知|提醒)/.test(p);
       var arrival=!hasDate && /(报到|签到|集合|入场)/.test(p) && /(参会|参加|全体|教师|人员)/.test(p);
       var onlyWhen=hasDate && !isTaskish(p,base);
       if(onlyWhen && cur && isTaskish(cur,base)){
@@ -1002,6 +1077,7 @@ function parseMulti(t, base, settings, ctx){
     });
   });
   res=mergeTaskFragments(res);
+  res=mergeClauseTasks(res);
   res=addPrepCompanions(res);
   var batch=res.length?uid():"";
   res.forEach(function(x){ x.batchId=batch; });
@@ -1028,7 +1104,7 @@ function taskClauseCount(text, base){
   });
   var out=[];
   tmp.forEach(function(s){
-    s.split(/(?:另外|还有|顺便|同时|此外|然后|接着|随后|之后再|以及)/).forEach(function(x){
+    s.split(/(?:另外|还有|顺便|同时|此外|然后|接着|随后|之后再)/).forEach(function(x){
       if(x.trim()) out.push(x.trim().replace(/^[，,、\s]+/,""));
     });
   });
@@ -1036,7 +1112,8 @@ function taskClauseCount(text, base){
   out.forEach(function(s){
     s.split(/[，,、]/).forEach(function(p){
       var c=cleanSegment(p);
-      if(c && isTaskish(c,base)) n++;
+      // 阿尔戈斯 1.5：交付从句（“发给我”）与寒暄铺垫会被并回主任务，不算独立任务数。
+      if(c && isTaskish(c,base) && !isDeliveryClause(c) && !isPreambleClause(c)) n++;
     });
   });
   return n;
@@ -1155,7 +1232,8 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.7";
+var APP_VERSION = "V1.8";
+var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
   quickMenu:false,
@@ -1394,8 +1472,8 @@ function renderSettings(){
     +'<div class="importbox"><textarea id="importText" placeholder="换机迁移：把备份码粘贴到这里，或点右侧 + 选择备份文件" aria-label="粘贴备份码"></textarea><button class="importplus" data-act="importBtn" aria-label="选择备份文件" title="选择备份文件">'+icon("plus",20)+'</button></div>'
     +'<input type="file" id="importFile" accept="application/json,.json" style="display:none">'
     +'<div class="trmeta" style="margin:12px 4px">共 '+state.tasks.length+' 条任务。上次备份：'+(s.lastExport?new Date(s.lastExport).toLocaleDateString():'还没备份过')+'</div>'
-    +'<div class="version-area"><button class="version-btn" data-act="versionPress" aria-label="版本 '+APP_VERSION+'，长按查看更新详情">'+APP_VERSION+'</button>'
-    +'<div class="version-hint">长按版本号查看更新内容</div>'
+    +'<div class="version-area"><button class="version-btn" data-act="versionPress" aria-label="版本 '+APP_VERSION+'，长按查看更新详情">'+APP_VERSION+'</button><button class="version-btn argus-badge" data-act="argusPress" aria-label="阿耳戈斯 '+ARGUS_VERSION+'，长按查看模型档案">'+icon("sparkle",13)+'阿耳戈斯 '+ARGUS_VERSION+'</button>'
+    +'<div class="version-hint">长按版本号看更新内容，长按徽标看模型档案</div>'
     +'<div class="trmeta">规则解析，无模型，数据只存在这台手机</div></div>'
     +'</div>';
 }
@@ -1435,6 +1513,7 @@ function renderSheet(){
   else if(state.sheet.type==="manual") html=sheetManual();
   else if(state.sheet.type==="day") html=sheetDay();
   else if(state.sheet.type==="version") html=sheetVersion();
+  else if(state.sheet.type==="argus") html=sheetArgus();
   var sheet=root.querySelector(".sheet");
   var scroll=sheet?sheet.scrollTop:0;
   var isEditor=state.sheet.type==="editor";
@@ -1458,16 +1537,28 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["换机备份码","设置页「分享备份」一键生成一段短码并复制，粘贴到微信发给新设备；在新设备的设置页把码粘贴进导入框即完成迁移，不再需要传文件。"],
-    ["数据多自动转文件","任务太多、短码超长时，分享备份会自动改为下载 .json 备份文件，导入框右侧的 + 号仍可上传文件。"],
-    ["粘贴即导入","导入框支持直接粘贴：粘贴备份码或旧版 JSON 文本都会自动开始导入并显示结果。"],
-    ["粉主题红点修复","浅粉主题下「今天」卡片里的红点换成白色带描边，不再和粉色卡片混在一起；蓝色主题不变。"],
-    ["数据与规则不变","八日格结构、解析规则、任务数据都没动，旧版备份文件仍可导入。"]
+    ["阿尔戈斯 1.5","解析模型升级：新增任务粒度回判，不再只会「切」，学会了「合」。寒暄铺垫并进备注、「明天下班前发给我」这类交付从句把期限并回主任务——一条柔性通知，一条干净任务。"],
+    ["模型档案卡","设置页版本号旁的「阿耳戈斯」徽标，长按可查看模型档案：它是什么、会什么、守什么。"],
+    ["专项测试固化","新增 22 条柔性请求类专项用例（含你遇到的那条通知），与原有 400 条回归一起守护模型质量。"],
+    ["数据与规则不变","八日格结构、任务数据、备份方式都没动；1.5 的解析对老通知零扰动，全部旧行为逐字节一致。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">换机备份与可读性修复</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">阿尔戈斯 1.5 · 解析模型升级</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
-    +'<div class="version-foot">仍然无模型、无云同步。删除主屏图标或清除浏览器网站数据前，请先导出备份。</div>';
+    +'<div class="version-foot">仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
+}
+function sheetArgus(){
+  var logs=[
+    ["百眼全视","Argus，希腊神话中永不闭目的守望者。阿尔戈斯把群通知的每一层语义都看在眼里：寒暄、铺垫、要求、期限，一条都逃不掉。"],
+    ["零模型 · 全本地","不联网、不上传、不调用任何云端 AI。任务数据从不出你的手机，断网照样解析——隐私是绝对红线，不是功能。"],
+    ["任务粒度回判","1.5 的心脏：切完再合。「写一段感想，80字以内，明天下班前发给我」——开场白进备注，期限回主任务，一条通知只出一张卡。"],
+    ["百炼成钢","数百条真实通知淬炼，公文、群消息、口语、花式表达四路全量回归，每次发布零回归才放行。"],
+    ["时间语义","「明天放学前」「单双周第8周」「下周三中午」——中文时间表达的细微差别，一眼看穿。"]
+  ];
+  return sheetHead("阿耳戈斯 Argus "+ARGUS_VERSION+" · 模型档案")
+    +'<div class="version-hero"><div class="version-big">Argus</div><div class="version-sub">阿耳戈斯 '+ARGUS_VERSION+' · 本地解析引擎</div></div>'
+    +logs.map(function(x){ return '<div class="version-log">'+icon("sparkle",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
+    +'<div class="version-foot">模型版本 '+ARGUS_VERSION+'，随应用 '+APP_VERSION+' 发布。长按版本号可查看应用更新详情。</div>';
 }
 function sheetPaste(){
   var d=state.drafts;
@@ -2041,16 +2132,17 @@ document.addEventListener("click",function(ev){
 
 var VersionPress={pressing:false,longPress:false,timer:null,startX:0,startY:0,suppressUntil:0};
 document.addEventListener("pointerdown",function(ev){
-  var btn=ev.target.closest && ev.target.closest('[data-act="versionPress"]');
+  var btn=ev.target.closest && ev.target.closest('[data-act="versionPress"],[data-act="argusPress"]');
   if(!btn || (ev.button!=null && ev.button!==0)) return;
   VersionPress.pressing=true; VersionPress.longPress=false;
+  VersionPress.sheetType=btn.dataset.act==="argusPress"?"argus":"version";
   VersionPress.startX=ev.clientX; VersionPress.startY=ev.clientY;
   clearTimeout(VersionPress.timer);
   VersionPress.timer=setTimeout(function(){
     if(!VersionPress.pressing) return;
     VersionPress.longPress=true;
     VersionPress.suppressUntil=Date.now()+1400;
-    state.sheet={type:"version"};
+    state.sheet={type:VersionPress.sheetType||"version"};
     renderSheet();
   },520);
 });
@@ -2069,7 +2161,7 @@ function endVersionPress(){
 document.addEventListener("pointerup",endVersionPress);
 document.addEventListener("pointercancel",endVersionPress);
 document.addEventListener("contextmenu",function(ev){
-  if(ev.target.closest && ev.target.closest('[data-act="versionPress"]')) ev.preventDefault();
+  if(ev.target.closest && ev.target.closest('[data-act="versionPress"],[data-act="argusPress"]')) ev.preventDefault();
 });
 document.addEventListener("click",function(ev){
   if(Date.now()<VersionPress.suppressUntil){ ev.preventDefault(); ev.stopPropagation(); }
@@ -2080,6 +2172,7 @@ document.addEventListener("click", async function(ev){
   if(!el) return;
   var act=el.dataset.act;
   if(act==="versionPress"){ toast("长按版本号查看更新内容"); return; }
+  if(act==="argusPress"){ toast("长按徽标查看模型档案"); return; }
   if(act==="openQuickMenu"){ state.quickMenu=!state.quickMenu; renderQuickMenu(); return; }
   if(act==="closeQuickMenu"){ state.quickMenu=false; renderQuickMenu(); return; }
   if(act==="editorBack"){ goBack(); return; }
