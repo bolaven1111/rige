@@ -267,7 +267,6 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .edge-settle{transition:transform .26s cubic-bezier(.32,.72,0,1)!important;animation:none!important;will-change:transform}
 .version-area{margin:18px 4px 4px;text-align:left}
 .version-btn{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:0;border-radius:11px;background:var(--accent-soft);color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.2px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
-.version-btn:active{transform:scale(.96)}
 .version-hint{font-size:11px;color:#8E8E93;margin:7px 0 8px;line-height:1.5}
 .argus-badge{margin-left:8px;background:var(--accent-soft);color:var(--blue);border:1px solid var(--accent-line)}
 .version-hero{padding:16px 16px 15px;background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:10px}
@@ -1232,7 +1231,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.8";
+var APP_VERSION = "V1.8.1";
 var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
@@ -1472,9 +1471,9 @@ function renderSettings(){
     +'<div class="importbox"><textarea id="importText" placeholder="换机迁移：把备份码粘贴到这里，或点右侧 + 选择备份文件" aria-label="粘贴备份码"></textarea><button class="importplus" data-act="importBtn" aria-label="选择备份文件" title="选择备份文件">'+icon("plus",20)+'</button></div>'
     +'<input type="file" id="importFile" accept="application/json,.json" style="display:none">'
     +'<div class="trmeta" style="margin:12px 4px">共 '+state.tasks.length+' 条任务。上次备份：'+(s.lastExport?new Date(s.lastExport).toLocaleDateString():'还没备份过')+'</div>'
-    +'<div class="version-area"><button class="version-btn" data-act="versionPress" aria-label="版本 '+APP_VERSION+'，长按查看更新详情">'+APP_VERSION+'</button><button class="version-btn argus-badge" data-act="argusPress" aria-label="阿耳戈斯 '+ARGUS_VERSION+'，长按查看模型档案">'+icon("sparkle",13)+'阿耳戈斯 '+ARGUS_VERSION+'</button>'
+    +'<div class="version-area"><button class="version-btn" data-act="versionPress" aria-label="版本 '+APP_VERSION+'，长按查看更新详情">'+APP_VERSION+'</button><button class="version-btn argus-badge" data-act="argusPress" aria-label="阿耳戈斯 '+ARGUS_VERSION+'，长按查看模型档案">'+'✦ 阿耳戈斯 '+ARGUS_VERSION+'</button>'
     +'<div class="version-hint">长按版本号看更新内容，长按徽标看模型档案</div>'
-    +'<div class="trmeta">规则解析，无模型，数据只存在这台手机</div></div>'
+    +'<div class="trmeta">规则解析，完全本地化</div></div>'
     +'</div>';
 }
 function renderQuickMenu(){
