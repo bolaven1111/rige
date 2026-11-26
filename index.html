@@ -1131,7 +1131,10 @@ var DEF_SETTINGS = {
 function applyTheme(){
   var t=state.settings.theme==="pink"?"pink":"blue";
   document.documentElement.setAttribute("data-theme",t);
-}
+  var touch=document.querySelector('link[rel="apple-touch-icon"]');
+  if(touch) touch.href="./icons/icon-180"+(t==="pink"?"-pink":"")+".png";
+  var fav=document.querySelector('link[rel="icon"]');
+  if(fav) fav.href="./icons/favicon-32"+(t==="pink"?"-pink":"")+".png";}
 function loadSettings(){
   try{ return Object.assign({}, DEF_SETTINGS, JSON.parse(localStorage.getItem("rige_settings")||"{}")); }
   catch(e){ return Object.assign({}, DEF_SETTINGS); }
@@ -1231,7 +1234,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.8.1";
+var APP_VERSION = "V1.8.2";
 var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
