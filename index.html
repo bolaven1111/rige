@@ -1268,7 +1268,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.9.2";
+var APP_VERSION = "V1.9.3";
 var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
@@ -1577,11 +1577,10 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["打开即今天","修复日历每次打开都停在 2027 年 1 月的问题：初始化期间的滚动干扰被屏蔽，进入日历永远定位在今天所在月。"],
-    ["2027 节假日","节假日数据按国务院办公厅通知（国办发明电〔2026〕10 号）更新至 2027 年：春节连休 9 天（2/5-2/13），端午、中秋各 1 天，调休上班日同步标注。"]
+    ["日历重构","日历改为一次性渲染去年同月至明年同月的全部月份，屏外月份交由浏览器 content-visibility 跳过渲染。滚动加载、月份裁剪、位置补偿逻辑整体移除——跳月、iOS 上回到今天滑动中断这类问题的根源被结构性消除。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">打开即今天 · 2027 节假日</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">日历底层重构 · 体验不变</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
 }
@@ -2074,9 +2073,7 @@ var WORKDAYS={};
   work(WORKDAYS,"2027-01-31","2027-02-14","2027-05-08","2027-09-26","2027-10-09");
 })();
 
-/* ===== 日历：月份块连续滚动（范围：去年同月 ~ 明年同月） ===== */
-var CAL={first:null,last:null,min:0,max:0,ready:false};
-function calIdx(y,m){ return y*12+m; }
+/* ===== 日历：全量渲染去年同月~明年同月（25 个月，无运行时增删，结构最简） ===== */
 function calShift(y,m,off){ var t=y*12+(m-1)+off; return {y:Math.floor(t/12), m:t%12+1}; }
 function renderMonthBlock(y,m){
   var first=new Date(y,m-1,1);
@@ -2109,76 +2106,29 @@ function calCell(d){
 }
 function renderCalendar(){
   var now=new Date();
-  CAL.first={y:now.getFullYear(),m:now.getMonth()+1};
-  CAL.last={y:CAL.first.y,m:CAL.first.m};
-  var lo=calShift(CAL.first.y,CAL.first.m,-12);
-  var hi=calShift(CAL.first.y,CAL.first.m,12);
-  CAL.min=calIdx(lo.y,lo.m);
-  CAL.max=calIdx(hi.y,hi.m);
-  var html='<div class="nav"><button class="icon-btn back" data-act="backHome" aria-label="返回主页" title="返回主页">'+icon("back",25)+'</button><span class="nt">日历</span><button class="icon-btn cal-today-btn" data-act="calToday" aria-label="回到今天" title="回到今天">'+icon("today",22)+'</button></div>'
-    +'<div class="calscroll" id="calScroll"></div>';
-  return html;
-}
-function calAppendMonth(){
-  if(calIdx(CAL.last.y,CAL.last.m)>=CAL.max) return false;
-  var n=calShift(CAL.last.y,CAL.last.m,1);
-  CAL.last=n;
-  document.getElementById("calScroll").insertAdjacentHTML("beforeend",renderMonthBlock(n.y,n.m));
-  return true;
-}
-function calPrependMonth(){
-  if(calIdx(CAL.first.y,CAL.first.m)<=CAL.min) return false;
-  var n=calShift(CAL.first.y,CAL.first.m,-1);
-  CAL.first=n;
-  document.getElementById("calScroll").insertAdjacentHTML("afterbegin",renderMonthBlock(n.y,n.m));
-  return n;
-}
-function calTrim(){
-  var el=document.getElementById("calScroll");
-  var blocks=el.querySelectorAll(".calmonth");
-  if(!blocks.length) return;
-  var firstIdx=parseInt(blocks[0].getAttribute("data-my"),10);
-  var lastIdx=parseInt(blocks[blocks.length-1].getAttribute("data-my"),10);
-  if(firstIdx<CAL.min){
-    var h=blocks[0].offsetHeight;
-    el.removeChild(blocks[0]);
-    el.scrollTop-=h;
-    CAL.first=calShift(CAL.first.y,CAL.first.m,1);
-  }else if(lastIdx>CAL.max){
-    el.removeChild(blocks[blocks.length-1]);
-    CAL.last=calShift(CAL.last.y,CAL.last.m,-1);
+  var cy=now.getFullYear(), cm=now.getMonth()+1;
+  var lo=calShift(cy,cm,-12), hi=calShift(cy,cm,12);
+  var blocks="";
+  for(var t=lo.y*12+lo.m;;){
+    var y=Math.floor((t-1)/12), m=(t-1)%12+1;
+    blocks+=renderMonthBlock(y,m);
+    if(y===hi.y&&m===hi.m) break;
+    t++;
   }
+  var html='<div class="nav"><button class="icon-btn back" data-act="backHome" aria-label="返回主页" title="返回主页">'+icon("back",25)+'</button><span class="nt">日历</span><button class="icon-btn cal-today-btn" data-act="calToday" aria-label="回到今天" title="回到今天">'+icon("today",22)+'</button></div>'
+    +'<div class="calscroll" id="calScroll">'+blocks+'</div>';
+  return html;
 }
 function initCalendar(){
   var el=document.getElementById("calScroll");
   if(!el) return;
-  CAL.ready=false;
-  el.innerHTML=renderMonthBlock(CAL.first.y,CAL.first.m);
-  calPrependMonth();
-  for(var i=0;i<4;i++) calAppendMonth();
-  // 定位到今天所在月（定位完成前忽略滚动事件，防止初始化期间的滚动触发加载打乱位置）
+  // 定位到今天所在月
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
       var t=el.querySelector("[data-today]");
       if(t) el.scrollTop=t.offsetTop-el.clientHeight/2;
-      CAL.ready=true;
     });
   });
-  var raf=0;
-  el.addEventListener("scroll",function(){
-    if(raf) return;
-    raf=requestAnimationFrame(function(){
-      raf=0;
-      if(state.view!=="calendar"||!CAL.ready) return;
-      if(el.scrollTop<el.clientHeight*0.8){
-        var before=el.scrollHeight;
-        calPrependMonth(); calPrependMonth();
-        el.scrollTop=el.scrollTop+(el.scrollHeight-before);
-        calTrim();
-      }
-      else if(el.scrollHeight-el.scrollTop-el.clientHeight<el.clientHeight*0.8){ calAppendMonth(); calAppendMonth(); calTrim(); }
-    });
-  },{passive:true});
 }
 
 function goBack(){
@@ -2611,7 +2561,6 @@ document.addEventListener("click", async function(ev){
     var cs=document.getElementById("calScroll");
     if(cs){
       var td=cs.querySelector("[data-today]");
-      if(!td){ render(); cs=document.getElementById("calScroll"); td=cs?cs.querySelector("[data-today]"):null; }
       if(td){ cs.scrollTo({top:td.offsetTop-cs.clientHeight/2,behavior:"smooth"}); toast("已回到今天"); }
     }
     return;
