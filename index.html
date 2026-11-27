@@ -1268,7 +1268,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.9.3";
+var APP_VERSION = "V1.9.4";
 var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
@@ -1577,10 +1577,10 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["日历重构","日历改为一次性渲染去年同月至明年同月的全部月份，屏外月份交由浏览器 content-visibility 跳过渲染。滚动加载、月份裁剪、位置补偿逻辑整体移除——跳月、iOS 上回到今天滑动中断这类问题的根源被结构性消除。"]
+    ["内部整理","功能与外观完全不变：边缘滑动与长按共用同一套点击抑制守卫；日历与八日格统一使用同一个「今天」；新增发版脚本，缓存名随版本号自动同步。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">日历底层重构 · 体验不变</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">内部整理 · 无功能变化</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
 }
@@ -2105,7 +2105,8 @@ function calCell(d){
   return '<div class="'+cls+'"'+todayMark+'><span class="cald">'+d.getDate()+'</span><span class="call">'+lunarText(lu)+'</span>'+tag+'</div>';
 }
 function renderCalendar(){
-  var now=new Date();
+  ensureToday();
+  var now=new Date(TODAY);
   var cy=now.getFullYear(), cm=now.getMonth()+1;
   var lo=calShift(cy,cm,-12), hi=calShift(cy,cm,12);
   var blocks="";
@@ -2156,7 +2157,9 @@ function goBack(){
 }
 
 /* 全页左滑返回；底部弹层只从顶部抓手下滑关闭 */
-var Edge={tracking:false,active:false,settling:false,target:null,startX:0,startY:0,dx:0,dy:0,started:0,suppressUntil:0,settleTimer:null};
+/* 手势后短暂吞掉 click 的唯一守卫：边缘滑动与长按共用，新增手势只需写 GestureGuard.until */
+var GestureGuard={until:0};
+var Edge={tracking:false,active:false,settling:false,target:null,startX:0,startY:0,dx:0,dy:0,started:0,settleTimer:null};
 var SheetDrag={tracking:false,active:false,settling:false,target:null,startX:0,startY:0,dx:0,dy:0,started:0,settleTimer:null};
 function currentEdgeTarget(){
   if(!state.sheet && state.view!=="home") return document.getElementById("app");
@@ -2270,7 +2273,7 @@ function finishSheetDrag(cancelled){
   var commit=!cancelled && (dy>Math.min(150,height*.3) || (dy>42 && dy/elapsed>.55)) && dy>Math.abs(dx)*1.1;
   var bd=document.querySelector("#sheet-root .backdrop");
   SheetDrag.settling=true;
-  Edge.suppressUntil=Date.now()+340;
+  GestureGuard.until=Date.now()+340;
   el.classList.remove("edge-dragging");
   el.classList.add("edge-settle");
   el.style.transform=commit?"translateY(100%)":"translateY(0px)";
@@ -2288,7 +2291,7 @@ function finishEdge(ev,cancelled){
   if(!Edge.tracking) return;
   var active=Edge.active, dx=Edge.dx, dy=Edge.dy, elapsed=Math.max(1,Date.now()-Edge.started);
   if(active){
-    Edge.suppressUntil=Date.now()+340;
+    GestureGuard.until=Date.now()+340;
     var commit=!cancelled && (dx>76 || (dx>38 && dx/elapsed>.55)) && dx>Math.abs(dy)*1.15;
     clearEdge(commit);
   }else clearEdge(false);
@@ -2296,10 +2299,10 @@ function finishEdge(ev,cancelled){
 document.addEventListener("touchend",function(ev){ finishSheetDrag(false); finishEdge(ev,false); },{passive:true});
 document.addEventListener("touchcancel",function(ev){ finishSheetDrag(true); finishEdge(ev,true); },{passive:true});
 document.addEventListener("click",function(ev){
-  if(Date.now()<Edge.suppressUntil){ ev.preventDefault(); ev.stopPropagation(); }
+  if(Date.now()<GestureGuard.until){ ev.preventDefault(); ev.stopPropagation(); }
 },true);
 
-var VersionPress={pressing:false,longPress:false,timer:null,startX:0,startY:0,suppressUntil:0};
+var VersionPress={pressing:false,longPress:false,timer:null,startX:0,startY:0};
 document.addEventListener("pointerdown",function(ev){
   var btn=ev.target.closest && ev.target.closest('[data-act="versionPress"],[data-act="argusPress"]');
   if(!btn || (ev.button!=null && ev.button!==0)) return;
@@ -2310,7 +2313,7 @@ document.addEventListener("pointerdown",function(ev){
   VersionPress.timer=setTimeout(function(){
     if(!VersionPress.pressing) return;
     VersionPress.longPress=true;
-    VersionPress.suppressUntil=Date.now()+1400;
+    GestureGuard.until=Date.now()+1400;
     state.sheet={type:VersionPress.sheetType||"version"};
     renderSheet();
   },520);
@@ -2324,7 +2327,7 @@ document.addEventListener("pointermove",function(ev){
 function endVersionPress(){
   if(!VersionPress.pressing) return;
   clearTimeout(VersionPress.timer);
-  if(VersionPress.longPress) VersionPress.suppressUntil=Date.now()+900;
+  if(VersionPress.longPress) GestureGuard.until=Date.now()+900;
   VersionPress.pressing=false; VersionPress.longPress=false;
 }
 document.addEventListener("pointerup",endVersionPress);
@@ -2332,9 +2335,6 @@ document.addEventListener("pointercancel",endVersionPress);
 document.addEventListener("contextmenu",function(ev){
   if(ev.target.closest && ev.target.closest('[data-act="versionPress"],[data-act="argusPress"]')) ev.preventDefault();
 });
-document.addEventListener("click",function(ev){
-  if(Date.now()<VersionPress.suppressUntil){ ev.preventDefault(); ev.stopPropagation(); }
-},true);
 
 document.addEventListener("click", async function(ev){
   var el=ev.target.closest("[data-act]");
