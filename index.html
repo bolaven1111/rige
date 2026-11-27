@@ -217,6 +217,7 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .nav{padding:10px 12px 8px;gap:4px;min-height:54px;background:var(--bg)}
 .nav .back{padding:0;color:#3A3A3C}
 .nav .nt{font-size:17px;font-weight:650;margin-left:2px}
+.nav .cal-today-btn{margin-left:auto}
 .scroll{padding:0 16px 30px}
 .sect{margin:17px 4px 8px;font-weight:500}
 .tr{border-radius:15px;padding:13px 12px;box-shadow:0 2px 7px rgba(20,24,40,.035);border:1px solid rgba(233,233,238,.8)}
@@ -1267,7 +1268,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.9";
+var APP_VERSION = "V1.9.1";
 var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
@@ -1318,7 +1319,8 @@ function icon(name,size){
     upload:'<path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path>',
     plus:'<path d="M12 5v14M5 12h14"></path>',
     rotate:'<path d="M4 4v6h6M5.5 15a7 7 0 1 0 .5-7L4 10"></path>',
-    arrow:'<path d="M5 12h14M13 6l6 6-6 6"></path>'
+    arrow:'<path d="M5 12h14M13 6l6 6-6 6"></path>',
+    today:'<circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>'
   };
   return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="font-size:'+(size||20)+'px">'+(p[name]||p.more)+'</svg>';
 }
@@ -1575,12 +1577,12 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["日历","右上角菜单新增日历：连续无缝上下滑动，永不触底。每格显示公历、农历（初一显示月名）、法定节假日和调休上班日，节假日数据已按国务院办公厅安排核验至 2026 年。"],
-    ["「以后」卡片升级","聚合卡里的任务不再显示具体时间，改为显示日期（如 12/25），一眼看清每件事落在哪天。今天和其余七格不受影响。"],
-    ["大屏适配","iPad mini、大屏 iPhone 横屏等宽屏设备上，八日格、弹层和日历自动限制宽度居中显示，不再被拉得宽扁。模型号不变：阿耳戈斯 1.5。"]
+    ["日历修洞","修复来回快速滑动时月份跳号的问题（如 2026年7月 下面直接接 2028年3月），月份块增删现在始终与记录保持同步。"],
+    ["回到今天","日历右上角新增定位按钮，点一下即刻平滑滚动回今天所在月份。"],
+    ["范围收敛","日历只保留去年同月到明年同月（如 2025年11月 ~ 2027年11月），滑到边界自然停住，不再无限延伸。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">日历 · 大屏适配 · 以后卡片</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">日历修洞 · 回到今天 · 范围收敛</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
 }
@@ -2065,8 +2067,9 @@ var WORKDAYS={};
   work(WORKDAYS,"2026-01-04","2026-02-14","2026-02-28","2026-05-09","2026-09-20","2026-10-10");
 })();
 
-/* ===== 日历：月份块连续滚动 ===== */
-var CAL={first:null,last:null};
+/* ===== 日历：月份块连续滚动（范围：去年同月 ~ 明年同月） ===== */
+var CAL={first:null,last:null,min:0,max:0};
+function calIdx(y,m){ return y*12+m; }
 function calShift(y,m,off){ var t=y*12+(m-1)+off; return {y:Math.floor(t/12), m:t%12+1}; }
 function renderMonthBlock(y,m){
   var first=new Date(y,m-1,1);
@@ -2101,19 +2104,23 @@ function renderCalendar(){
   var now=new Date();
   CAL.first={y:now.getFullYear(),m:now.getMonth()+1};
   CAL.last={y:CAL.first.y,m:CAL.first.m};
-  var html='<div class="nav"><button class="icon-btn back" data-act="backHome" aria-label="返回主页" title="返回主页">'+icon("back",25)+'</button><span class="nt">日历</span></div>'
+  var lo=calShift(CAL.first.y,CAL.first.m,-12);
+  var hi=calShift(CAL.first.y,CAL.first.m,12);
+  CAL.min=calIdx(lo.y,lo.m);
+  CAL.max=calIdx(hi.y,hi.m);
+  var html='<div class="nav"><button class="icon-btn back" data-act="backHome" aria-label="返回主页" title="返回主页">'+icon("back",25)+'</button><span class="nt">日历</span><button class="icon-btn cal-today-btn" data-act="calToday" aria-label="回到今天" title="回到今天">'+icon("today",22)+'</button></div>'
     +'<div class="calscroll" id="calScroll"></div>';
   return html;
 }
 function calAppendMonth(){
-  if(CAL.last.y>=2100&&CAL.last.m>=12) return false;
+  if(calIdx(CAL.last.y,CAL.last.m)>=CAL.max) return false;
   var n=calShift(CAL.last.y,CAL.last.m,1);
   CAL.last=n;
   document.getElementById("calScroll").insertAdjacentHTML("beforeend",renderMonthBlock(n.y,n.m));
   return true;
 }
 function calPrependMonth(){
-  if(CAL.first.y<=1900&&CAL.first.m<=1) return false;
+  if(calIdx(CAL.first.y,CAL.first.m)<=CAL.min) return false;
   var n=calShift(CAL.first.y,CAL.first.m,-1);
   CAL.first=n;
   document.getElementById("calScroll").insertAdjacentHTML("afterbegin",renderMonthBlock(n.y,n.m));
@@ -2122,10 +2129,18 @@ function calPrependMonth(){
 function calTrim(){
   var el=document.getElementById("calScroll");
   var blocks=el.querySelectorAll(".calmonth");
-  if(blocks.length<=26) return;
-  var nearTop=el.scrollTop<el.scrollHeight*0.4;
-  if(nearTop){ el.removeChild(blocks[blocks.length-1]); }
-  else { var h=blocks[0].offsetHeight; el.removeChild(blocks[0]); el.scrollTop-=h; }
+  if(!blocks.length) return;
+  var firstIdx=parseInt(blocks[0].getAttribute("data-my"),10);
+  var lastIdx=parseInt(blocks[blocks.length-1].getAttribute("data-my"),10);
+  if(firstIdx<CAL.min){
+    var h=blocks[0].offsetHeight;
+    el.removeChild(blocks[0]);
+    el.scrollTop-=h;
+    CAL.first=calShift(CAL.first.y,CAL.first.m,1);
+  }else if(lastIdx>CAL.max){
+    el.removeChild(blocks[blocks.length-1]);
+    CAL.last=calShift(CAL.last.y,CAL.last.m,-1);
+  }
 }
 function initCalendar(){
   var el=document.getElementById("calScroll");
@@ -2583,6 +2598,15 @@ document.addEventListener("click", async function(ev){
     return;
   }
   if(act==="backHome"){ state.quickMenu=false; state.view="home"; render(); return; }
+  if(act==="calToday"){
+    var cs=document.getElementById("calScroll");
+    if(cs){
+      var td=cs.querySelector("[data-today]");
+      if(!td){ render(); cs=document.getElementById("calScroll"); td=cs?cs.querySelector("[data-today]"):null; }
+      if(td){ cs.scrollTo({top:td.offsetTop-cs.clientHeight/2,behavior:"smooth"}); toast("已回到今天"); }
+    }
+    return;
+  }
   if(act==="openInbox"){ state.quickMenu=false; state.view="inbox"; render(); return; }
   if(act==="openCalendar"){ state.quickMenu=false; state.view="calendar"; render(); return; }
   if(act==="openSettings"){ state.quickMenu=false; state.view="settings"; render(); return; }
