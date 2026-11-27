@@ -281,7 +281,7 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
 /* ===== 日历 ===== */
-.calscroll{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 30px;scrollbar-width:none}
+.calscroll{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 30px;scrollbar-width:none;overflow-anchor:none}
 .calscroll::-webkit-scrollbar{display:none}
 .calmonth{margin:0 auto 14px;max-width:640px}
 .calmhead{font-size:16px;font-weight:700;color:var(--ink);padding:10px 4px 8px}
@@ -1268,7 +1268,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.9.1";
+var APP_VERSION = "V1.9.2";
 var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
@@ -1577,12 +1577,11 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["日历修洞","修复来回快速滑动时月份跳号的问题（如 2026年7月 下面直接接 2028年3月），月份块增删现在始终与记录保持同步。"],
-    ["回到今天","日历右上角新增定位按钮，点一下即刻平滑滚动回今天所在月份。"],
-    ["范围收敛","日历只保留去年同月到明年同月（如 2025年11月 ~ 2027年11月），滑到边界自然停住，不再无限延伸。"]
+    ["打开即今天","修复日历每次打开都停在 2027 年 1 月的问题：初始化期间的滚动干扰被屏蔽，进入日历永远定位在今天所在月。"],
+    ["2027 节假日","节假日数据按国务院办公厅通知（国办发明电〔2026〕10 号）更新至 2027 年：春节连休 9 天（2/5-2/13），端午、中秋各 1 天，调休上班日同步标注。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">日历修洞 · 回到今天 · 范围收敛</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">打开即今天 · 2027 节假日</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
 }
@@ -2040,7 +2039,7 @@ function lunarText(lu){
   return LDAY1[lu.d-1];
 }
 
-/* ===== 节假日与调休（2025-2026 已按官方安排核验；更早年份只标周末） ===== */
+/* ===== 节假日与调休（2025-2027 已按官方安排核验；更早年份只标周末） ===== */
 var HOLIDAYS={};
 var WORKDAYS={};
 (function(){
@@ -2065,10 +2064,18 @@ var WORKDAYS={};
   span("2026-09-25","2026-09-27","中秋");
   span("2026-10-01","2026-10-07","国庆");
   work(WORKDAYS,"2026-01-04","2026-02-14","2026-02-28","2026-05-09","2026-09-20","2026-10-10");
+  span("2027-01-01","2027-01-03","元旦");
+  span("2027-02-05","2027-02-13","春节");
+  span("2027-04-03","2027-04-05","清明");
+  span("2027-05-01","2027-05-05","劳动节");
+  HOLIDAYS["2027-06-09"]="端午";
+  HOLIDAYS["2027-09-15"]="中秋";
+  span("2027-10-01","2027-10-07","国庆");
+  work(WORKDAYS,"2027-01-31","2027-02-14","2027-05-08","2027-09-26","2027-10-09");
 })();
 
 /* ===== 日历：月份块连续滚动（范围：去年同月 ~ 明年同月） ===== */
-var CAL={first:null,last:null,min:0,max:0};
+var CAL={first:null,last:null,min:0,max:0,ready:false};
 function calIdx(y,m){ return y*12+m; }
 function calShift(y,m,off){ var t=y*12+(m-1)+off; return {y:Math.floor(t/12), m:t%12+1}; }
 function renderMonthBlock(y,m){
@@ -2145,14 +2152,16 @@ function calTrim(){
 function initCalendar(){
   var el=document.getElementById("calScroll");
   if(!el) return;
+  CAL.ready=false;
   el.innerHTML=renderMonthBlock(CAL.first.y,CAL.first.m);
   calPrependMonth();
   for(var i=0;i<4;i++) calAppendMonth();
-  // 定位到今天所在月
+  // 定位到今天所在月（定位完成前忽略滚动事件，防止初始化期间的滚动触发加载打乱位置）
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
       var t=el.querySelector("[data-today]");
       if(t) el.scrollTop=t.offsetTop-el.clientHeight/2;
+      CAL.ready=true;
     });
   });
   var raf=0;
@@ -2160,7 +2169,7 @@ function initCalendar(){
     if(raf) return;
     raf=requestAnimationFrame(function(){
       raf=0;
-      if(state.view!=="calendar") return;
+      if(state.view!=="calendar"||!CAL.ready) return;
       if(el.scrollTop<el.clientHeight*0.8){
         var before=el.scrollHeight;
         calPrependMonth(); calPrependMonth();
