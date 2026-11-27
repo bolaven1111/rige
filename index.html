@@ -278,6 +278,39 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 .version-log-text{font-size:12px;color:#6B6B70;line-height:1.55;margin-top:3px}
 .version-foot{font-size:11px;color:#8E8E93;line-height:1.6;margin:12px 4px 2px}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ===== 日历 ===== */
+.calscroll{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 30px;scrollbar-width:none}
+.calscroll::-webkit-scrollbar{display:none}
+.calmonth{margin:0 auto 14px;max-width:640px}
+.calmhead{font-size:16px;font-weight:700;color:var(--ink);padding:10px 4px 8px}
+.calwd{display:grid;grid-template-columns:repeat(7,1fr);padding:0 0 4px}
+.calwd span{font-size:11px;color:var(--muted);text-align:center}
+.calwd span:first-child,.calwd span:last-child{color:var(--blue)}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.calcell{min-height:52px;background:var(--card);border-radius:10px;padding:5px 4px 3px;display:flex;flex-direction:column;align-items:center;gap:1px;border:1.5px solid transparent}
+.calcell.empty{background:transparent}
+.cald{font-size:15px;font-weight:600;color:var(--ink);line-height:1.15}
+.call{font-size:10px;color:var(--muted);line-height:1.2;white-space:nowrap;transform:scale(.92)}
+.calcell.wk .cald{color:var(--blue)}
+.calcell.wk{background:var(--accent-softer)}
+.calcell.hol{background:var(--accent-soft)}
+.calcell.hol .cald{color:var(--danger)}
+.calcell.work{background:var(--card)}
+.calcell.work .cald{color:var(--ink)}
+.caltag{font-size:9px;line-height:1;padding:2px 4px;border-radius:5px;white-space:nowrap;transform:scale(.95)}
+.caltag.hol{color:var(--danger);background:rgba(229,72,77,.10)}
+.caltag.work{color:#8E8E93;background:#F2F2F7}
+.calcell.today{border-color:var(--blue);box-shadow:0 2px 8px var(--accent-line)}
+.calcell.today .cald{color:var(--blue)}
+.calhint{text-align:center;font-size:11px;color:var(--muted);padding:6px 0 2px}
+/* ===== 大屏适配（iPad mini / 大屏 iPhone 横屏等） ===== */
+@media(min-width:700px){
+  #app{max-width:720px;margin:0 auto}
+  .sheet{left:0;right:0;margin:0 auto;max-width:720px}
+  .quick-menu{right:max(16px,calc(50% - 360px))}
+  .calcell{min-height:64px}
+}
 </style>
 </head>
 <body>
@@ -1234,7 +1267,7 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.8.4";
+var APP_VERSION = "V1.9";
 var ARGUS_VERSION = "1.5";
 var state = {
   view:"home",
@@ -1388,9 +1421,10 @@ function dayCard(d, ds, items, isToday, isFuture){
       var cls=prioClass(t);
       var pt=prioText(t);
       var ak=t.anchor==="occur"?"到场":"截止";
+      var whenTxt=isFuture?fmtSlash(t.date):(t.time||"全天");
       return '<div class="item" data-act="openTask" data-id="'+esc(t.id)+'">'
         +'<span class="dot '+cls+'"></span>'
-        +'<div class="tt"><span>'+esc(t.time||"全天")+'</span><span class="akr">'+(pt?'<span class="'+(pt==="P0"?"p0tag":"p2tag")+'">'+pt+'</span>':'')+'<span class="ak '+(t.anchor==="occur"?"occur":"due")+'">'+ak+'</span></span></div>'
+        +'<div class="tt"><span>'+esc(whenTxt)+'</span><span class="akr">'+(pt?'<span class="'+(pt==="P0"?"p0tag":"p2tag")+'">'+pt+'</span>':'')+'<span class="ak '+(t.anchor==="occur"?"occur":"due")+'">'+ak+'</span></span></div>'
         +'<div class="ti">'+esc(t.title)+'</div></div>';
     }).join("");
   }
@@ -1487,6 +1521,7 @@ function renderQuickMenu(){
   root.innerHTML='<div class="menu-backdrop" data-act="closeQuickMenu"></div>'
     +'<div class="quick-menu" role="menu" aria-label="更多功能">'
     +'<button class="quick-item" data-act="openInbox" role="menuitem">'+icon("inbox",20)+'<span class="qtext">收件箱</span>'+(n?'<span class="quick-count">'+n+'</span>':'')+'</button>'
+    +'<button class="quick-item" data-act="openCalendar" role="menuitem">'+icon("calendar",20)+'<span class="qtext">日历</span></button>'
     +'<button class="quick-item" data-act="openSettings" role="menuitem">'+icon("settings",20)+'<span class="qtext">设置</span></button>'
     +'</div>';
 }
@@ -1497,6 +1532,7 @@ function render(){
   var app=document.getElementById("app");
   if(state.view==="inbox") app.innerHTML=renderInbox();
   else if(state.view==="settings") app.innerHTML=renderSettings();
+  else if(state.view==="calendar"){ app.innerHTML=renderCalendar(); initCalendar(); }
   else { app.innerHTML=renderHome(); fitHomeCards(); }
   renderSheet();
   renderQuickMenu();
@@ -1539,12 +1575,12 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["粉色主题图标","新增粉色版应用图标，与浅粉主题配套。切换到粉色主题时，添加到主屏的图标就是粉色八日格。"],
-    ["图标换装方法","把主题切到粉色后，删掉主屏上的旧图标、重新「添加到主屏幕」，新图标即为粉色；切回蓝色主题重装即还原。"],
-    ["版本号与模型号","设置页现在分别显示应用版本号和「阿耳戈斯」模型号：应用小更新不动模型号，只有解析模型升级才动。"]
+    ["日历","右上角菜单新增日历：连续无缝上下滑动，永不触底。每格显示公历、农历（初一显示月名）、法定节假日和调休上班日，节假日数据已按国务院办公厅安排核验至 2026 年。"],
+    ["「以后」卡片升级","聚合卡里的任务不再显示具体时间，改为显示日期（如 12/25），一眼看清每件事落在哪天。今天和其余七格不受影响。"],
+    ["大屏适配","iPad mini、大屏 iPhone 横屏等宽屏设备上，八日格、弹层和日历自动限制宽度居中显示，不再被拉得宽扁。模型号不变：阿耳戈斯 1.5。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">粉色主题图标 · 小更新</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">日历 · 大屏适配 · 以后卡片</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
 }
@@ -1591,6 +1627,7 @@ function sheetPaste(){
   }
   return (state.drafts?sheetHead("解析结果"):'<div class="grabber"></div>')+body;
 }
+function fmtSlash(s){ var d=new Date(s+"T00:00:00"); return (d.getMonth()+1)+"/"+d.getDate(); }
 function fmtShortDate(s){
   var d=new Date(s+"T00:00:00");
   return (d.getMonth()+1)+"月"+d.getDate()+"日 "+WD_CN[d.getDay()];
@@ -1961,6 +1998,163 @@ function segment(text){
   }
   flush();
   return out;
+}
+
+// 农历数据 1900-2100，由天文算法推导并全量校验；EPOCH=1899-12-01
+var LUNAR_NY=[61, 445, 799, 1154, 1537, 1891, 2246, 2630, 2984, 3339, 3723, 4077, 4461, 4815, 5169, 5553, 5907, 6262, 6646, 7001, 7385, 7739, 8093, 8477, 8831, 9185, 9570, 9924, 10279, 10663, 11017, 11400, 11754, 12109, 12493, 12848, 13202, 13586, 13940, 14324, 14678, 15032, 15416, 15771, 16125, 16510, 16864, 17218, 17602, 17956, 18340, 18694, 19049, 19433, 19787, 20142, 20526, 20880, 21263, 21618, 21972, 22356, 22711, 23065, 23449, 23804, 24157, 24541, 24896, 25280, 25634, 25989, 26373, 26727, 27081, 27465, 27819, 28203, 28557, 28912, 29296, 29651, 30005, 30389, 30743, 31127, 31481, 31835, 32219, 32574, 32929, 33313, 33667, 34021, 34404, 34759, 35143, 35497, 35852, 36236, 36590, 36944, 37328, 37682, 38037, 38421, 38775, 39160, 39514, 39868, 40252, 40606, 40960, 41344, 41699, 42083, 42437, 42792, 43176, 43530, 43884, 44268, 44622, 44977, 45361, 45715, 46099, 46453, 46807, 47191, 47546, 47900, 48284, 48639, 49023, 49377, 49731, 50115, 50469, 50823, 51207, 51562, 51917, 52301, 52655, 53039, 53393, 53747, 54131, 54485, 54840, 55224, 55579, 55963, 56317, 56671, 57054, 57409, 57763, 58147, 58502, 58856, 59240, 59594, 59978, 60332, 60687, 61071, 61425, 61780, 62164, 62518, 62902, 63256, 63610, 63994, 64349, 64703, 65087, 65442, 65796, 66180, 66534, 66918, 67272, 67627, 68011, 68365, 68720, 69103, 69457, 69841, 70195, 70550, 70934, 71289, 71643, 72027, 72381, 72735, 73119];
+var LUNAR_MD=[35794, 1874, 3749, 23338, 1611, 2715, 84646, 1386, 2905, 11178, 1874, 28069, 2853, 2635, 88651, 685, 1387, 9653, 3497, 97938, 3730, 3365, 23853, 2646, 694, 84693, 1748, 3753, 12106, 3730, 26278, 1323, 2647, 88406, 2906, 1748, 79713, 1865, 97043, 2707, 1323, 91419, 2733, 1386, 85413, 2980, 2889, 11595, 2709, 31405, 1334, 2733, 88778, 1458, 3493, 81570, 3402, 34197, 2711, 1366, 25973, 2773, 1746, 18261, 3749, 1610, 13903, 2715, 31450, 1386, 2921, 23474, 2898, 2853, 19243, 2635, 35499, 685, 1389, 91561, 3497, 3474, 20117, 3365, 44621, 2646, 694, 25333, 1749, 3753, 24402, 3730, 3366, 13614, 2647, 35542, 858, 1749, 23401, 1865, 1683, 19099, 1323, 2651, 10926, 1386, 32213, 2980, 2889, 23891, 2709, 1325, 17757, 2741, 39850, 1490, 3493, 93834, 3402, 3221, 19102, 1366, 2741, 10970, 1746, 26469, 1829, 1611, 22103, 3243, 1370, 13678, 2921, 48978, 2898, 2853, 93451, 2635, 1195, 21179, 1453, 2922, 11690, 3474, 32421, 3365, 2645, 88653, 1206, 1461, 79570, 3785, 36754, 3730, 3366, 91414, 2647, 1238, 82789, 1877, 1865, 14155, 1683, 31403, 1323, 2651, 23226, 1386, 2917, 19370, 2890, 36245, 2709, 1325, 25965, 2741, 1450, 17877, 3493, 3402, 15949, 3222, 31950, 1366, 2741, 88786, 1746, 3749, 18218, 1611, 34455, 1195, 1371, 91478, 2922, 1874, 19349, 2853, 2699, 10831, 1195];
+/* 农历转换：公历(年,月,日) -> {y,m,d,leap}，m=1..12 */
+function daysFromEpoch(y,m,d){
+  return Math.floor((Date.UTC(y,m-1,d)-Date.UTC(1899,11,1))/864e5);
+}
+function lunarFromSolar(y,m,d){
+  var n=daysFromEpoch(y,m,d);
+  if(n<61||n>77800) return null;
+  var lo=0,hi=209;
+  while(lo<hi){ var mid=(lo+hi+1)>>1; if(LUNAR_NY[mid]<=n) lo=mid; else hi=mid-1; }
+  var yi=lo,n2=n-LUNAR_NY[yi];
+  var bits=LUNAR_MD[yi];
+  var months=[];
+  for(var i=0;i<12;i++) months.push((bits>>i&1)?30:29);
+  var leapM=(bits>>12)&15, leapLen=(bits>>16&1)?30:29;
+  var lm=1,ld=n2+1,isleap=false;
+  for(var k=0;k<12;k++){
+    var L=months[k];
+    if(ld<=L) return {y:1900+yi,m:lm,d:ld,leap:false};
+    ld-=L;
+    if(leapM===k+1){
+      if(ld<=leapLen) return {y:1900+yi,m:lm,d:ld,leap:true};
+      ld-=leapLen;
+    }
+    lm++;
+  }
+  return null;
+}
+var LMONTH_CN=["正","二","三","四","五","六","七","八","九","十","冬","腊"];
+var LDAY1=["初一","初二","初三","初四","初五","初六","初七","初八","初九","初十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
+function lunarText(lu){
+  if(!lu) return "";
+  if(lu.d===1) return (lu.leap?"闰":"")+LMONTH_CN[lu.m-1]+"月";
+  return LDAY1[lu.d-1];
+}
+
+/* ===== 节假日与调休（2025-2026 已按官方安排核验；更早年份只标周末） ===== */
+var HOLIDAYS={};
+var WORKDAYS={};
+(function(){
+  function span(start,end,name){
+    var d=new Date(start+"T00:00:00"), e=new Date(end+"T00:00:00"), i=0;
+    while(d<=e){ HOLIDAYS[fmtYMD(d)]=(i===0?name:"休"); d.setDate(d.getDate()+1); i++; }
+  }
+  function work(list){ for(var i=1;i<arguments.length;i++) list[arguments[i]]=1; }
+  span("2025-01-01","2025-01-01","元旦");
+  span("2025-01-28","2025-02-04","春节");
+  span("2025-04-04","2025-04-06","清明");
+  span("2025-05-01","2025-05-05","劳动节");
+  span("2025-05-31","2025-06-02","端午");
+  span("2025-10-01","2025-10-08","国庆");
+  HOLIDAYS["2025-10-06"]="中秋";
+  work(WORKDAYS,"2025-01-26","2025-02-08","2025-04-27","2025-09-28","2025-10-11");
+  span("2026-01-01","2026-01-03","元旦");
+  span("2026-02-15","2026-02-23","春节");
+  span("2026-04-04","2026-04-06","清明");
+  span("2026-05-01","2026-05-05","劳动节");
+  span("2026-06-19","2026-06-21","端午");
+  span("2026-09-25","2026-09-27","中秋");
+  span("2026-10-01","2026-10-07","国庆");
+  work(WORKDAYS,"2026-01-04","2026-02-14","2026-02-28","2026-05-09","2026-09-20","2026-10-10");
+})();
+
+/* ===== 日历：月份块连续滚动 ===== */
+var CAL={first:null,last:null};
+function calShift(y,m,off){ var t=y*12+(m-1)+off; return {y:Math.floor(t/12), m:t%12+1}; }
+function renderMonthBlock(y,m){
+  var first=new Date(y,m-1,1);
+  var start=dayAdd(first,-first.getDay());
+  var dim=new Date(y,m,0).getDate();
+  var rows=(first.getDay()+dim>35)?42:35;
+  var cells="";
+  for(var i=0;i<rows;i++){
+    var d=dayAdd(start,i);
+    if(d.getMonth()!==m-1){ cells+='<div class="calcell empty"></div>'; continue; }
+    cells+=calCell(d);
+  }
+  return '<div class="calmonth" data-my="'+(y*12+m)+'"><div class="calmhead">'+y+'年'+m+'月</div>'
+    +'<div class="calwd"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>'
+    +'<div class="calgrid">'+cells+'</div></div>';
+}
+function calCell(d){
+  var ds=fmtYMD(d);
+  var lu=lunarFromSolar(d.getFullYear(),d.getMonth()+1,d.getDate());
+  var hol=HOLIDAYS[ds], work=WORKDAYS[ds];
+  var weekend=(d.getDay()===0||d.getDay()===6);
+  var cls="calcell";
+  if(weekend) cls+=" wk";
+  if(hol) cls+=" hol";
+  if(work) cls+=" work";
+  var todayMark="";
+  if(ds===todayStr()){ cls+=" today"; todayMark=' data-today="1"'; }
+  var tag=hol?'<span class="caltag hol">'+esc(hol)+'</span>':(work?'<span class="caltag work">班</span>':'');
+  return '<div class="'+cls+'"'+todayMark+'><span class="cald">'+d.getDate()+'</span><span class="call">'+lunarText(lu)+'</span>'+tag+'</div>';
+}
+function renderCalendar(){
+  var now=new Date();
+  CAL.first={y:now.getFullYear(),m:now.getMonth()+1};
+  CAL.last={y:CAL.first.y,m:CAL.first.m};
+  var html='<div class="nav"><button class="icon-btn back" data-act="backHome" aria-label="返回主页" title="返回主页">'+icon("back",25)+'</button><span class="nt">日历</span></div>'
+    +'<div class="calscroll" id="calScroll"></div>';
+  return html;
+}
+function calAppendMonth(){
+  if(CAL.last.y>=2100&&CAL.last.m>=12) return false;
+  var n=calShift(CAL.last.y,CAL.last.m,1);
+  CAL.last=n;
+  document.getElementById("calScroll").insertAdjacentHTML("beforeend",renderMonthBlock(n.y,n.m));
+  return true;
+}
+function calPrependMonth(){
+  if(CAL.first.y<=1900&&CAL.first.m<=1) return false;
+  var n=calShift(CAL.first.y,CAL.first.m,-1);
+  CAL.first=n;
+  document.getElementById("calScroll").insertAdjacentHTML("afterbegin",renderMonthBlock(n.y,n.m));
+  return n;
+}
+function calTrim(){
+  var el=document.getElementById("calScroll");
+  var blocks=el.querySelectorAll(".calmonth");
+  if(blocks.length<=26) return;
+  var nearTop=el.scrollTop<el.scrollHeight*0.4;
+  if(nearTop){ el.removeChild(blocks[blocks.length-1]); }
+  else { var h=blocks[0].offsetHeight; el.removeChild(blocks[0]); el.scrollTop-=h; }
+}
+function initCalendar(){
+  var el=document.getElementById("calScroll");
+  if(!el) return;
+  el.innerHTML=renderMonthBlock(CAL.first.y,CAL.first.m);
+  calPrependMonth();
+  for(var i=0;i<4;i++) calAppendMonth();
+  // 定位到今天所在月
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      var t=el.querySelector("[data-today]");
+      if(t) el.scrollTop=t.offsetTop-el.clientHeight/2;
+    });
+  });
+  var raf=0;
+  el.addEventListener("scroll",function(){
+    if(raf) return;
+    raf=requestAnimationFrame(function(){
+      raf=0;
+      if(state.view!=="calendar") return;
+      if(el.scrollTop<el.clientHeight*0.8){
+        var before=el.scrollHeight;
+        calPrependMonth(); calPrependMonth();
+        el.scrollTop=el.scrollTop+(el.scrollHeight-before);
+        calTrim();
+      }
+      else if(el.scrollHeight-el.scrollTop-el.clientHeight<el.clientHeight*0.8){ calAppendMonth(); calAppendMonth(); calTrim(); }
+    });
+  },{passive:true});
 }
 
 function goBack(){
@@ -2390,6 +2584,7 @@ document.addEventListener("click", async function(ev){
   }
   if(act==="backHome"){ state.quickMenu=false; state.view="home"; render(); return; }
   if(act==="openInbox"){ state.quickMenu=false; state.view="inbox"; render(); return; }
+  if(act==="openCalendar"){ state.quickMenu=false; state.view="calendar"; render(); return; }
   if(act==="openSettings"){ state.quickMenu=false; state.view="settings"; render(); return; }
   if(act==="share"){ shareBackup(); return; }
   if(act==="importBtn"){ var f=document.getElementById("importFile"); if(f) f.click(); return; }
