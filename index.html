@@ -320,7 +320,18 @@ button:focus-visible,[data-act]:focus-visible{outline:2px solid rgba(49,87,213,.
 <div id="sheet-root"></div>
 <div id="toast" class="toast"></div>
 <script>
-/* ================= PARSER START ================= */
+/* ================= PARSER START =================
+   阿耳戈斯 Argus · 本地规则解析引擎（流水线自上而下，数据单向流动）
+     S0 规范化与通用工具   normalizeText / stripListNo / 日期与中文数字工具
+     S1 要素抽取          parseDate / parseTime / parseTimeRange / parsePlace / categoryOf
+     S2 标题提炼          findObj / objAllowed / titleOf / cleanSegment
+     S3 任务判定          isTaskish / isNotice / parseNotice / stripSignature
+     S4 切分与合并(1.0)    addPrepCompanions / shouldMergeTasks / mergeTaskFragments
+     S5 粒度回判(1.5)      isDeliveryClause / isPreambleClause / mergeClauseTasks
+     S6 入口编排          parseMulti / parseAll / taskClauseCount
+   维护纪律：新增规则必须 ①归入上述某阶段 ②在 ARGUS_RULES 登记 ③附回归语料。
+*/
+/* ===== S0 词典与通用工具 ===== */
 var OBJ = [
 ["研学活动报名","报名"],["新生家长会","家长会"],["家长座谈会","座谈会"],["家长座谈会","家长会"],["研学活动","研学"],["研学","研学"],["教材征订","教材"],["研讨活动","研讨"],["数学研讨","研讨"],["运动会","运动会"],["报到","报到"],["领书","领书"],["报名","报名"],["接龙","接龙"],["证明","证明"],["学分","学分"],["登记表","登记表"],["研修","研修"],["政治学习","政治学习"],["研究课","研究课"],["毕业生登记表","登记表"],["学籍卡","学籍卡"],["家长会回执","回执"],
 ["秋季运动会报名表","报名表"],["运动会报名表","报名表"],["报名表","报名表"],
@@ -333,7 +344,8 @@ var OBJ = [
 ["总结","总结"],["方案","方案"],["计划","计划"],["聘书","聘书"],
 ["公开课","公开课"],["课题报告","课题报告"],["报告","报告"],["课题","课题"],["升旗仪式","升旗"],["监考","监考"],
 ["培训","培训"],["会议","会议"],["教研活动","教研"],["研训活动","研训"],["教研","教研"],["数学课","数学课"],["听课","听课"],["监考","监考"],["统计表","统计表"],["记录","记录"],["复查","复查"],["体检","体检"],["买菜","买菜"],["保养车","保养车"],["房产证","房产证"],["运动会带队","运动会带队"],["家长会回执","回执"],
-["家访记录表","家访记录表"],["记录表","记录表"],["亲子阅读照片","照片"],["阅读照片","照片"],["照片","照片"],["人数","人数"],["截图","截图"],["健康码","健康码"],["体测","体测"],["教学反思","反思"],["感想","感想"],["看班","看班"]
+["家访记录表","家访记录表"],["记录表","记录表"],["亲子阅读照片","照片"],["阅读照片","照片"],["照片","照片"],["人数","人数"],["截图","截图"],["健康码","健康码"],["体测","体测"],["教学反思","反思"],["感想","感想"],["看班","看班"],
+["出生证明","出生证明"],["护照","护照"],["行车记录仪","行车记录仪"],["内存卡","内存卡"]
 ];
 var VERB = [
 ["提交","交"],["上交","交"],["报送","交"],["上报","交"],["交","交"],
@@ -373,6 +385,7 @@ function cnNum(s){
   if(s.indexOf("十")>0){ var a=s.split("十"); return (m[a[0]]||0)*10+(a[1]?m[a[1]]:0); }
   return m[s]||0;
 }
+/* ===== S1 要素抽取：日期 / 时间 / 地点 / 类别 ===== */
 function parseDate(str, base){
   str=normalizeText(str);
   base = base || new Date();
@@ -466,7 +479,7 @@ function parseTime(str, ctxPeriod){
     if(h>23||mi>59) return null;
     return pad2(h)+":"+pad2(mi);
   }
-  m = str.match(/(上午|早上|早晨|凌晨|中午|下午|午后|晚上|傍晚|夜里|夜间|今晚|今夜|明晚|昨晚|晚)?\s*(\d{1,2}|[一二两三四五六七八九十]{1,2})\s*点\s*(半|[一二两三四五六七八九十]{1,2}|\d{1,2}\s*分?)?/);
+  m = str.match(/(上午|早上|早晨|凌晨|中午|下午|午后|晚上|傍晚|夜里|夜间|今晚|今夜|明晚|昨晚|晚)?\s*(\d{1,2}|[一二两三四五六七八九十]{1,2})\s*点\s*(半|[一二两三四五六七八九十]{1,2}|\d{1,2}\s*分?)?(?![A-Za-z])/);
   if(m){
     var hRaw=m[2], per=m[1]||periodNear(m.index,m[0].length);
     var hh=applyPeriod(/^\d+$/.test(hRaw)?+hRaw:cnNum(hRaw),per);
@@ -523,14 +536,15 @@ function cleanPlace(v){
   if(/^(?:登记表|材料|回执|报名表|表格|名单|记录|作业|教案|试卷|课件|证明|接龙|指定邮箱|系统|平台|问卷|班主任|老师)$/.test(s)) return "";
   if(/^\d{1,2}月\d{1,2}[日号]|^\d{4}年|^\d{1,2}:\d{2}/.test(s)) return "";
   s=s.replace(/[\u4e00-\u9fa5]{1,4}老师处$/,"").trim();
-  var cm=s.match(/(.{2,}?)(?:参加|出席|观摩|监考|开会|开教研会|开教研|开家长会|开班会|开年级家长会|开学|开展|组织|值日|上课|教研(?!中心|室|组|所|院|部)|培训(?!中心|学校|学院|基地|部|处)|活动(?!中心|室|厅|馆|场|基地|广场|营)|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|过一遍|过一下|过|交|提交|上交|做|写|复查|体检(?![中心医院])|洗牙|看牙|补牙|取药|买菜|吃饭|接孩子|取快递|保养|办房产证|办停车位|陪|送教|报到|集合|集中|出发|运动会|带队|听课|听[^，,。；;]{0,12}课|和朋友|和家人|玩|拿)/);
+  var cm=s.match(/(.{2,}?)(?:参加|出席|观摩|监考|开会|开教研会|开教研|开家长会|开班会|开年级家长会|开学|开展|组织|值日|上课|教研(?!中心|室|组|所|院|部)|培训(?!中心|学校|学院|基地|部|处)|活动(?!中心|室|厅|馆|场|基地|广场|营)|试讲|说课|朗读|阅读|读|念|讲|汇报|展示|执教|分享|发言|过一遍|过一下|过|交|提交|上交|做|写|复查|体检(?![中心医院])|洗牙|看牙|补牙|取药|买菜|吃饭|接孩子|取快递|保养|办房产证|办停车位|陪|送教|报到|集合|集中|出发|运动会|带队|听课|听[^，,。；;]{0,12}课|和朋友|和家人|玩|拿|打(?=疫苗|十三价|五联|流感)|洗澡|晒太阳|游泳|野餐|拍照|拍全家福|洗车|理发|办护照|推婴儿车)/);
   if(cm) s=cm[1].trim();
   s=s.split(/(?:早上|上午|中午|下午|晚上|傍晚|凌晨|今天|明天|后天|昨天|前天|周[一二三四五六日天]|星期[一二三四五六日天]|礼拜[一二三四五六日天]|\d{1,2}[:：]\d{2}|\d{1,2}\s*点|[一二两三四五六七八九十]{1,2}\s*点|之前|以前)/)[0].trim();
   s=s.replace(/(?:之前|以前|前)$/,"").trim();
   s=s.replace(/^[，,。；;、\s]+/,"").replace(/[，,。；;、\s]+$/,"").trim();
   if(s.length<2) return "";
   if(/^[\d:：点半前后\s]+$/.test(s)) return "";
-  if(/^(买菜|做饭|吃饭|取药|取快递|买菜|健身|上班|下班|开会|值日|升旗|体检|复查|打印|复印|上传|提交|交材料|交教案)$/.test(s)) return "";
+  if(/^(?:打(?:十三价|五联|流感|疫苗)|洗车|理发|办护照|把电充|将电充)/.test(s)) return "";
+  if(/^(买菜|做饭|吃饭|取药|取快递|买菜|健身|上班|下班|开会|值日|升旗|体检|复查|打印|复印|上传|提交|交材料|交教案|洗车|理发|打疫苗|游泳|野餐)$/.test(s)) return "";
   if(/^(试试|尝尝|看看|回复|后面|大家|自己|相关|全体|各班|老师|同学|家长|通知)$/.test(s)) return "";
   return s;
 }
@@ -552,6 +566,12 @@ function parsePlace(str){
   if(m){ var pc=cleanPlace(m[1]); if(pc) return pc; }
   m=str.match(/(?:交|提交|上交|报送|上报|发|发送|发给|上传)(?:到|给|至)?\s*([^，,。；;\n]{2,20}?(?:处|室|科|组|中心|学校|云盘|群|邮箱|股|局|馆|场|楼|校区))(?=[，,。；;\n]|$)/);
   if(m){ var p4=cleanPlace(m[1]); if(p4) return p4; }
+  /* 口语常省略“在/去”：“下午两点社区医院打疫苗”。 */
+  m=str.match(/(?:\d{1,2}\s*[:：]\s*\d{2}|[一二两三四五六七八九十\d]{1,2}\s*点(?:半|[一二两三四五六七八九十]{1,2}|\d{1,2}(?![A-Za-z]))?)\s*([^，,。；;\n]{2,20}?)(?=打(?:疫苗|十三价|五联|流感)|体检|保养|检测|讲座|面试|随访|集合|出发)/);
+  if(m){ var pt=cleanPlace(m[1]); if(pt) return pt; }
+  /* “还是在妇幼保健院”“在郊野公园”这类独立地点补述。 */
+  m=str.match(/(?:还是(?:上次那个)?|还是在(?:上次那个)?|还在|在)\s*([^，,。；;\n]{2,20}?(?:医院|保健院|公园|中心|酒店|工作室|饭店|餐厅|校区|学校|车站|码头|地库))(?=\s*$|[，,。；;])/);
+  if(m){ var pin=cleanPlace(m[1]); if(pin) return pin; }
   return "";
 }
 function decideAnchor(str, meta){
@@ -614,21 +634,30 @@ function categoryOf(s){
   if(personalWeak.test(s)) return "个人";
   return "个人";
 }
-function cleanTitleFallback(s){
+/* ===== S2 标题提炼：对象词典匹配 + 动词尾字防护 ===== */
+function cleanTitleFallback(s,maxLen){
   var t=cleanSegment(s).replace(/@所有人|@全体成员/g,"")
+    .replace(/^(?:对了[，,]?\s*)?(?:老婆|老公)(?:提醒我|说)?\s*[:：,，]?\s*/,"")
+    .replace(/^(?:对了|那个那个|那个|嗯|啊)[，,：:]?\s*/,"")
+    .replace(/^(?:你|我|我们)?(?:记得|别忘了?|麻烦你|辛苦你)\s*/,"")
+    .replace(/[，,]\s*(?:你)?(?:请半天假|请好假|看着安排|注意安全|安全第一|别迟到|别拖|别等天亮|别又忘了|别忘了|别忘)[^，,。；;]*$/,"")
+    .replace(/^(?:宝妈|家长|业主|物业|班级)?群通知\s*[:：]?\s*/,"")
+    .replace(/^[^，,]{2,20}的话[，,]?(?:直接)?(?:去|前往)?/,"")
     .replace(/^请/,"")
     .replace(/(\d{4}年)?\d{1,2}\s*月\s*\d{1,2}\s*[日号]/g,"")
     .replace(/\d{4}[-/]\d{1,2}[-/]\d{1,2}/g,"")
     .replace(/(上上(?:个)?(?:周|星期|礼拜)|上(?:个)?(?:周|星期|礼拜)|下下(?:个)?(?:周|星期|礼拜)|下(?:个)?(?:周|星期|礼拜)|本(?:个)?(?:周|星期|礼拜)|这(?:个)?(?:周|星期|礼拜)|周|星期|礼拜)[一二三四五六日天]/g,"")
-    .replace(/(今天|明天|后天|大后天|昨天|前天)/g,"")
+    .replace(/(今天|明天|后天|大后天|昨天|前天|今晚|明早|明晚)/g,"")
     .replace(/(上午|下午|午后|中午|晚上|傍晚|夜里|夜间)?\s*\d{1,2}\s*:\s*\d{2}/g,"")
     .replace(/(上午|下午|午后|中午|晚上|傍晚|夜里|夜间|晚)?\s*(\d{1,2}|[一二两三四五六七八九十]{1,2})\s*点\s*(半|[一二两三四五六七八九十]{1,2}|\d{1,2}\s*分?)?/g,"")
     .replace(/(上午|下午|午后|中午|晚上|傍晚|夜里|夜间|晚)/g,"")
     .replace(/(之前|以前|截止|务必|准时|按时|完成|做好)/g,"")
     .replace(/(左右|然后|再去|然后再|一下)/g,"")
+    .replace(/充满电/g,"充电").replace(/把电充(?:上|了|满)?/g,"充电").replace(/^电充上$/,"充电").replace(/理个发/g,"理发")
+    .replace(/^(?:把|你|我们|先|再)+/,"")
     .replace(/^(在|前|后|到|去|前往)/,"")
     .replace(/[，,。；;：:、\s“”"'（）()《》【】]/g,"");
-  if(t.length>12) t=t.slice(0,12);
+  if(t.length>(maxLen||12)) t=t.slice(0,maxLen||12);
   return t;
 }
 function objAllowed(term, s, pos){
@@ -660,6 +689,21 @@ function isVerbTailOfLonger(s,p,v){
   }
   return false;
 }
+function spokenTitleSource(s){
+  var raw=cleanSegment(s);
+  if(!/(你|我们|老婆|老公|宝宝|我妈|妈说|老板娘|车子|车该|家里|物业)/.test(raw)) return s;
+  var parts=raw.split(/[，,]/).map(function(x){return x.trim();}).filter(Boolean);
+  if(parts.length<2) return raw;
+  var last=parts[parts.length-1];
+  if(/你[^，,]{0,8}接(?:一下|她|他|人)?/.test(last)) return last;
+  /* 明确的期限动作比背景事件更贴近本张卡：“五点前把行李装上车”。 */
+  for(var k=parts.length-1;k>=0;k--){
+    if(/(?:点|分|之前|以前)前?[^，,]{0,6}把[^，,]+/.test(parts[k]) && LIFE_ACTION.test(parts[k])) return parts[k];
+  }
+  /* 其余情况保留完整口语原文：前半句常含任务对象（奶粉、门票、酒店），
+     后半句提供动作；只留动作会丢对象。标题长度在 cleanTitleFallback 单独控制。 */
+  return raw;
+}
 function titleOf(s, opts){
   opts = opts||{};
   if(opts.noticeTitle!==undefined){
@@ -670,26 +714,31 @@ function titleOf(s, opts){
     if(t.length>12) t=t.slice(0,12);
     return t||"通知";
   }
-  var best=findObj(stripPreamblePrefix(s));
+  var titleSrc=spokenTitleSource(s);
+  var objSrc=titleSrc;
+  var titleParts=titleSrc.split(/[，,]/);
+  if(titleParts.length>1 && /(你|我们|老婆|老公|宝宝|我妈|妈说|老板娘|家里)/.test(titleSrc) && (LIFE_ACTION.test(titleParts[0]) || /(疫苗|儿保|体检|护照|聚餐|讲座)/.test(titleParts[0]))) objSrc=titleParts[0];
+  var best=findObj(stripPreamblePrefix(objSrc));
   if(best){
-    var idx=s.indexOf(best[0]);
+    var idx=objSrc.indexOf(best[0]);
     var verb=null, vpos=-1, vlen=0;
     for(var j=0;j<VERB.length;j++){
       var term=VERB[j][0];
-      var p=s.lastIndexOf(term, idx);
-      if(p<0 || isVerbTailOfLonger(s,p,term)) continue;
+      var p=objSrc.lastIndexOf(term, idx);
+      if(p<0 || isVerbTailOfLonger(objSrc,p,term)) continue;
       // “收获与感想”里的“收”是名词修饰语不是动作，跳过这类复合词首字。
-      if(term.length===1 && /[获到集成拾]/.test(s.charAt(p+1))) continue;
+      if(term.length===1 && /[获到集成拾]/.test(objSrc.charAt(p+1))) continue;
       if(p>vpos || (p===vpos && term.length>vlen)){ vpos=p; vlen=term.length; verb=VERB[j][1]; }
     }
     var tt=(verb && best[1].indexOf(verb)!==0 ? verb : "")+best[1];
     if(tt.length>12) tt=tt.slice(0,12);
     if(tt.length>=2) return tt;
   }
-  var f=cleanTitleFallback(s);
+  var spokenTitle=/(你|我们|老婆|老公|宝宝|我妈|妈说|老板娘|车子|车该|家里|物业|续航|空调|全家福)/.test(titleSrc);
+  var f=cleanTitleFallback(titleSrc,spokenTitle?18:12);
   var pl=cleanPlace(parsePlace(s));
-  if(pl && f.indexOf(pl)===0 && f.length>pl.length) f=f.slice(pl.length);
-  return f || s.slice(0,8);
+  if(!spokenTitle && pl && f.indexOf(pl)===0 && f.length>pl.length) f=f.slice(pl.length);
+  return f || titleSrc.slice(0,8);
 }
 function cleanSegment(s){
   s=normalizeText(s).replace(/\s+/g," ").trim();
@@ -700,16 +749,54 @@ function cleanSegment(s){
   s=s.replace(/^(?:接|接到|刚接到)(?:学校|上级|教育局|区教育局)?通知[，,：:]\s*/,"");
   s=s.replace(/^(?:本周|这周|今天)?有(?:几项|项)事情?(?:请留意|要注意)[：:]\s*/,"");
   s=s.replace(/^(?:还有|另外|同时|顺便|此外|然后|接着|随后|之后再)[，,：:]?\s*/,"");
-  s=s.replace(/(?:[，,]\s*)?(?:全体|各位|相关|各班|各年级|所有)?[^，,。；;]{0,12}(?:别忘了|别忘记)[^。；;]*$/,"");
+  s=s.replace(/[，,]\s*(?:全体|各位|相关|各班|各年级|所有)?[^，,。；;]{0,12}(?:别忘了|别忘记)[^。；;]*$/,"");
+  s=s.replace(/(?:别忘了|别忘记)[^。；;]*$/,"");
   s=s.replace(/[，,]\s*(?:收到请回复|请回复|收到回复|谢谢配合|谢谢大家|谢谢)[。；;]?.*$/,"");
   s=s.replace(/[。；;]\s*(?:收到请回复|请回复|收到回复|谢谢配合|谢谢大家|谢谢)[。；;]?.*$/,"");
   s=s.replace(/^[，,。；;、\s]+/,"").replace(/[，,。；;、\s]+$/,"").trim();
   return s;
 }
+/* ===== S3 任务判定与单条解析 ===== */
+/* 2.0：口语任务不再要求先命中学校对象词典。动作词提供“可执行”信号，
+   时间、第二人称、祈使语气提供“现在需要记下来”的意图信号；二者同时满足才放行，
+   避免把“今天会翻身了”“随便你定”等聊天内容变成任务。 */
+var LIFE_ACTION=/(?:预约|放票|下单|订|抢|买|带|拿|取|送|接|修|换|装|洗|清理|整理|收拾|消毒|煮|剪|喂|观察|扫描|存|收藏|查|看|研究|续费|续保|续|缴费|交|充|格式化|设置|检测|检查|挪|停|收纳|开|预热|打(?:疫苗|气|电话|十三价|五联)|洗澡|体检|儿保|面试|随访|讲座|游泳|晒太阳|出发|入住|野餐|聚餐|年检|限号|停水|报修|寄|捐|记|列|扔|推(?=婴儿车|伞车|小车)|戴|穿|放出|放进|放入|洗出来|装起来|收起来|翻出来|打包|充满|装好|订好|约好|确认|操作|弄好|搞定)/;
+function hasLifeIntent(s){
+  return /(?:你|您|请|记得|别忘|别又忘|需要|抓紧|提前|务必|把|一下|一趟|记得说|的话|那天|该|要|回来|下班|出门|之前|以前|哪天|有空)/.test(s);
+}
+function isContextEventDate(s){
+  /* “周六出游的零食你买”里周六属于出游，不一定是采购截止日；
+     只有明确写成“周六的/当天来回”等从属结构时才剥离。 */
+  if(/^(?:本|这|下|上)?(?:周|星期|礼拜)[一二三四五六日天]\s*(?:之前|以前|前)/.test(s)) return false;
+  if(!/^(?:本|这|下|上)?(?:周|星期|礼拜)[一二三四五六日天][^，,。；]*(?:的|当天来回)[^，,。；]*[，,]/.test(s)) return false;
+  var tail=s.replace(/^(?:本|这|下|上)?(?:周|星期|礼拜)[一二三四五六日天]/,"");
+  return !/(今天|明天|后天|大后天|今晚|明早|明晚|(?:本|这|下)?周[一二三四五六日天]|\d{1,2}月\d{1,2}[日号]?)/.test(tail);
+}
+function parseActionDate(s,base){
+  /* 最后一个明确期限优先于句首的背景事件日期：
+     “下周六的露营……明天之前答复”应落在明天。 */
+  var re=/(大后天|后天|明天|今天|今晚|明早|明晚|(?:本|这|下|上)?(?:周|星期|礼拜)[一二三四五六日天]|\d{1,2}\s*月\s*\d{1,2}\s*[日号]?|\d{1,2}\s*[日号])\s*(?:之前|以前|前)/g;
+  var m,last=null;
+  while((m=re.exec(s))) last=m[1];
+  if(last) return parseDate(last,base);
+  var own=s.match(/你\s*(今晚|明早|明晚|明天|今天|后天|大后天)/);
+  if(own) return parseDate(own[1],base);
+  /* 多个分句各有日期时，最后一个带动作的分句通常才是当前任务。 */
+  var parts=s.split(/[，,]/);
+  for(var i=parts.length-1;i>0;i--){
+    if(LIFE_ACTION.test(parts[i]) && parseDate(parts[i],base).date && !/(?:抢|买|订|预约)[^，,]*的$/.test(parts[i])) return parseDate(parts[i],base);
+  }
+  /* 没有更晚的执行日期时，采用首个动作分句，避免全文扫描被背景日期抢占。 */
+  for(var j=0;j<parts.length;j++){
+    if(LIFE_ACTION.test(parts[j]) && parseDate(parts[j],base).date && !/(?:抢|买|订|预约)[^，,]*的$/.test(parts[j])) return parseDate(parts[j],base);
+  }
+  return parseDate(s,base);
+}
 function isTaskish(s, base){
   s=cleanSegment(s);
   if(!s) return false;
-  if(/(不用|无需|不必|不到校|已经结束|已结束|取消|停课|放假|调休|降温|保暖|添衣|感冒|不再集中|不再举行|不再召开)/.test(s)) return false;
+  if(/(不用|无需|不必|不到校|已经结束|已结束|取消|停课|放假|调休|保暖|添衣|感冒|不再集中|不再举行|不再召开|去尝尝|别错过|接在后面)/.test(s)) return false;
+  if(/食堂[^，,。；]*(?:换了新菜|有包子)/.test(s)) return false;
   // “另行通知/等通知”只在整句没有可执行内容时才是否定；
   // “本周五前完成听课记录，提交方式另行通知”仍应留下主任务。
   if(/(另行通知|等通知|待定)/.test(s) && !/(请于|之前|以前|截止|完成|提交|上交|报名|缴费|准备|收齐)/.test(s)) return false;
@@ -718,11 +805,17 @@ function isTaskish(s, base){
   if(/^(?:老师|教师|班主任|组长|家长|同学|成员|组员)[:：]?$/.test(s)) return false;
   if(/(原计划|按.*计划|居家学习安排|安排教学)$/.test(s)) return false;
   if(/^【[^】]+】$/.test(s)) return false;
-  if(/(每月|每周|每学期|常态化|按规定|根据.*规定|制度|抽查)/.test(s) && !parseDate(s,base).date) return false;
+  if(/(每月|每周|每学期|常态化|按规定|根据.*规定|制度|抽查)/.test(s) && !parseDate(s,base).date && !/(你|记得|别忘|需要)/.test(s)) return false;
   if(/(改期|改到|调整到|推迟到|提前到|时间改为)/.test(s) && /(下周|本周|下个月|另行|待定|稍后)/.test(s) && !/(改到|调整到|提前到|推迟到)\s*\d{1,2}月/.test(s)) return false;
   if(/已经|已/.test(s) && /(整理|完成|结束|发出|发到|交过)/.test(s)) return false;
   var d=parseDate(s,base);
   if(d.date && d.date.getTime() < base.getTime()) return false;
+  var lifeTm=parseTime(s);
+  var formalSchool=/^请(?:各位|全体)?(?:班主任|学生|家长|老师)/.test(s) && /(学生|班级|班主任|二课|学分|作业|课本)/.test(s) && !/(宝宝|家里|车子)/.test(s);
+  if(!formalSchool && LIFE_ACTION.test(s) && (d.date || lifeTm || hasLifeIntent(s))) return true;
+  /* 口语里“周六保洁上门”“下周二限号”没有显性动作动词，
+     但日期 + 可发生事件仍是明确任务；纯聊天不经过此通道。 */
+  if((d.date || lifeTm) && /(疫苗|儿保|体检|讲座|回访|面试|随访|保洁|安检|保养|年检|限号|停水|聚餐|农家乐|直播|入住|游泳课|会员日|车友会|洗车|理发|保险经纪|上门|来家里)/.test(s)) return true;
   var obj=findObj(s);
   var action=/(交|提交|上交|报送|上报|收齐|收集|收|准备|备好|迎检|整理|批改|统计|填报|上传|审核|打印|复印|制作|做|写|完成|参加|出席|开会|开家长会|开班会|开课|开展|听课|观摩|教研|培训|监考|值日|家访|发言|汇报|试讲|说课|朗读|阅读|读|念|讲|展示|执教|分享|领|领取|取|拿|接|送|办|体检|复查|买菜|保养|集合|集中|报到|沟通|处理|组织|聚餐|发|发送|发给|发到|报名|缴费|征订|注册|签到|入场|通知|提醒|研究课)/;
   if(/(平时|即可|月检)/.test(s)) return false;
@@ -829,6 +922,7 @@ function stripSignature(t){
   return lines.join("\n");
 }
 var PREP_OBJECTS={"课件":1,"教案":1,"试卷":1,"公开课":1,"发言稿":1,"材料":1,"汇报材料":1};
+/* ===== S4 多任务切分与合并（1.0 工序：随行事项、碎片合并） ===== */
 function addPrepCompanions(res, rawOverride){
   var out=res.slice();
   res.forEach(function(x){
@@ -856,33 +950,52 @@ function isLeadToNextTask(s){
   s=String(s||"");
   var x=s.replace(/\s/g,"");
   if(/^(?:为做好|为了|配合做好|报名表下载|按.*(?:要求)?填写|所有(?:材料|人员|教师|班主任)|现需(?:收集|统计|填报)|下面(?:请|是)|本次(?:需要|统计)|报名截止时间|提交截止时间|提交(?:纸质|电子))/ .test(x)) return true;
+  if(LIFE_ACTION.test(x) && !/(今天|明天|后天|今晚|明早|明晚|(?:本|这|下)?周[一二三四五六日天]|\d{1,2}月\d{1,2}[日号]?)/.test(x) && /(一下|该|要|没了|坏了|出来了|先申请)/.test(x)) return true;
+  if(/报告出来了/.test(x) && !/(今天|明天|后天|今晚)/.test(x)) return true;
   return /^请.*(?:填写|认真准备|准备好|准备|完成|整理)/.test(x) && !/\d|月|日|周|点|前/.test(x);
 }
 function isPrevTaskCompanion(s){
   s=String(s||"");
-  return /^(?:并|同时|以及|然后|接着|随后|另外|再进行|进行|地点|地址|会议地点|活动地点|本部|全体|请大家|请有.*(?:提前|准备)|请.*(?:准时参加|安排时间参加)|杜绝|确保|活动现场|活动安排|安排)/.test(s.replace(/\s/g,""));
+  return /^(?:并|同时|以及|然后|接着|随后|另外|再进行|进行|地点|地址|会议地点|活动地点|本部|全体|请大家|请有.*(?:提前|准备)|请.*(?:准时参加|安排时间参加)|杜绝|确保|活动现场|活动安排|安排|记得带|带医保卡|带疫苗本|我们.*出发|你.*前把|服务区.*充电|你注意接|你去接|照片我约好了|你把.*提前装好|你开车送)/.test(s.replace(/\s/g,""));
 }
 function absorbTask(a,b){
   if(!a || !b) return a;
+  var spokenCompanion=isPrevTaskCompanion(b.raw) && /^(?:我们.*出发|你.*前把)/.test(String(b.raw||"").replace(/\s/g,""));
+  var eventAction=(/聚餐/.test(a.raw)&&/订.*包间/.test(b.raw)) || (/停车场预约/.test(a.raw)&&/操作/.test(b.raw));
+  var ticketAction=/放票/.test(a.raw)&&/抢/.test(b.raw);
+  var companion=isPrevTaskCompanion(b.raw);
+  var preserveMain=(companion && !/你.*前把/.test(String(b.raw||"").replace(/\s/g,""))) || eventAction || ticketAction ||
+    (a.date && b.date && a.date===b.date && normCat(a.category)==="个人" && /去/.test(a.raw));
+  var directPickup=/你去接/.test(b.raw);
   a.raw = a.raw ? a.raw+"，"+b.raw : b.raw;
+  if((spokenCompanion||eventAction) && b.date) a.date=b.date;
+  if((spokenCompanion||eventAction) && b.time) a.time=b.time;
   if(!a.date) a.date=b.date;
   if(!a.time) a.time=b.time;
   if(!a.endTime) a.endTime=b.endTime;
   if(!a.place) a.place=b.place;
   if(!a.note && b.note) a.note=b.note;
+  if(/当天来回/.test(a.raw) && /你查/.test(b.raw) && !/(今天|明天|后天|今晚)/.test(b.raw)) a.date=null;
   a.category=categoryOf(a.raw);
   var newTitle=titleOf(a.raw);
-  if(newTitle && newTitle.length>=2) a.title=newTitle;
+  if(directPickup) a.title="接";
+  else if(!preserveMain && newTitle && newTitle.length>=2) a.title=newTitle;
   a.updatedAt=Date.now();
   return a;
+}
+function isStandaloneLifeEvent(s){
+  return LIFE_ACTION.test(s) || /(疫苗|儿保|体检|保养|讲座|随访|面试|保洁|聚餐|农家乐)/.test(s);
 }
 function shouldMergeTasks(prev,x){
   if(!prev || !x) return false;
   var s=String(x.raw||"").replace(/\s/g,"");
   var datesCompatible=!prev.date || !x.date || prev.date===x.date;
+  if((/聚餐/.test(prev.raw)&&/订.*包间/.test(x.raw)) || (/停车场预约/.test(prev.raw)&&/操作/.test(x.raw)) || (/放票/.test(prev.raw)&&/抢/.test(x.raw))) return true;
   if(/^(?:地点|地址|会议地点|活动地点)\s*:/.test(s)) return datesCompatible;
   if(isPrevTaskCompanion(s) && datesCompatible) return true;
-  if(prev.date && x.date && prev.date===x.date && prev.category===x.category &&
+  if(normCat(prev.category)==="个人" && /买/.test(x.raw) && /去/.test(prev.raw) && datesCompatible && !/(今晚|明天|后天)/.test(x.raw) && !parseTime(x.raw)) return true;
+  var independentLife=normCat(prev.category)==="个人" && normCat(x.category)==="个人" && /(宝宝|我妈|社区医院|儿保|疫苗|保养|充电)/.test(prev.raw+" "+x.raw) && isStandaloneLifeEvent(prev.raw) && isStandaloneLifeEvent(x.raw);
+  if(prev.date && x.date && prev.date===x.date && prev.category===x.category && !independentLife &&
      (!prev.time || !x.time || prev.time===x.time)) return true;
   return false;
 }
@@ -906,7 +1019,7 @@ function mergeTaskFragments(res){
   }
   return out;
 }
-/* ===== 阿尔戈斯 1.5：任务粒度回判 =====
+/* ===== S5 任务粒度回判（阿尔戈斯 1.5） =====
    1.0 只会“切”，把一条多从句通知撕成碎片；1.5 加两道“合”的工序：
    ① 交付从句回收——“写……感想，明天下班前发给我”里单独的“发给我”不是任务，
      把它的截止日期并回前一条还没有日期的任务；
@@ -976,10 +1089,21 @@ function mergeClauseTasks(res){
   for(var m=0;m<buf.length;m++) out2.push(buf[m]);
   return out2;
 }
+/* ===== S6 入口编排：多任务切分 → 单条解析 → 粒度回判 ===== */
 function parseMulti(t, base, settings, ctx){
   ctx=ctx||{};
   t=normalizeText(t);
   var text=stripSignature(t);
+  /* 2.0 口语自我纠正：“明天，不对，后天”只保留纠正后的内容。 */
+  text=text.replace(/(?:那个)+[^，,。；]{0,12}[，,]\s*不对[，,]\s*/,"");
+  text=text.replace(/[^，,。；]{1,24}[，,]\s*不对[，,]\s*([^，,。；]+)/g,"$1");
+  /* 两个并列预约事项共享日期：“疫苗和保养都约在后天”。 */
+  text=text.replace(/([^，,。；]{1,12}(?:疫苗|儿保|保养|体检))和([^，,。；]{1,12}(?:疫苗|儿保|保养|体检))都?约在?(今天|明天|后天|大后天|(?:本|这|下)?周[一二三四五六日天])/g,"$1约在$3；$2约在$3");
+  /* 无标点语音长句：完成的动作与下一时段之间补边界。 */
+  if(!/[，,。；;\n]/.test(text) && text.length>30){
+    text=text.replace(/((?:打完|开完|做完|吃完|买完)(?:以后|后))/g,"$1；");
+    text=text.replace(/(?=(?:下午|晚上|明早|明晚)[^；]{0,12}(?:我妈|你妈|你|我|宝宝))/g,"；");
+  }
   text=text.replace(/\n\s*((?:[\(\（](?:\d+|[一二三四五六七八九十]+)[\)\）]|(?:\d+|[一二三四五六七八九十]+)[.、．）)]))\s*/g,"\n");
   var rawSegs=[];
   text.split(/\n+/).forEach(function(line){
@@ -1007,6 +1131,7 @@ function parseMulti(t, base, settings, ctx){
     line.split(/；|;/).forEach(function(x){ if(x.trim()) tmp.push(x.trim()); });
   });
   var segs2=[];
+  var conjPending="";
   tmp.forEach(function(s){
     // “开会并交材料”是事件 + 截止两个任务；“讲PPT并展示课件”仍应算一个主任务，
     // 所以这里只在前半句是明确事件、后半句是交付动作时拆。
@@ -1014,6 +1139,9 @@ function parseMulti(t, base, settings, ctx){
     s.split(/；|;/).forEach(function(part){
       part.split(/(?:另外|还有|顺便|同时|此外|然后|接着|随后|之后再)/).forEach(function(x){
         var v=x.replace(/^[，,、\s]+/,"").trim();
+        if(v && (parseDate(v,base).date || parseTime(v)) && !isTaskish(v,base) && !LIFE_ACTION.test(v)){ conjPending=v; return; }
+        if(v && conjPending){ v=conjPending+"，"+v; conjPending=""; }
+        if(v && v!==part && v.length<=20 && /^(?:买|订|预约|取|拿|带|交|提交|准备|整理|充电)/.test(v) && LIFE_ACTION.test(v) && !hasLifeIntent(v)) v="你"+v;
         if(v) segs2.push(v);
       });
     });
@@ -1030,6 +1158,10 @@ function parseMulti(t, base, settings, ctx){
       // 不应各生成一张卡；只有当片段自己带时间/日期，或能独立成为一个动作时才拆。
       var aux=!hasDate && !hasTime && /^(?:请|并|同时|然后|再|务必|准时|按时)/.test(p) && /(参加|出席|准时|到场|到会|安排时间|通知|提醒)/.test(p);
       var arrival=!hasDate && /(报到|签到|集合|入场)/.test(p) && /(参会|参加|全体|教师|人员)/.test(p);
+      /* “爬爬垫你看一下，周日之前下单”后半句是同一任务的期限，
+         不是第二张卡；以期限开头的短从句并回当前任务。 */
+      var deadlineCont=hasDate && !!cur && /^(?:你)?(?:把)?(?:大后天|后天|明天|今天|今晚|(?:本|这|下)?周[一二三四五六日天]|\d{1,2}月\d{1,2}[日号]?|\d{1,2}[日号])\s*(?:之前|以前|前)\s*(?:下单|搞定|给我|给你|寄出去|取回来|办好|操作)/.test(p);
+      if(deadlineCont){ cur=cur+"，"+p; curHasWhen=true; return; }
       var onlyWhen=hasDate && !isTaskish(p,base);
       if(onlyWhen && cur && isTaskish(cur,base)){
         cur=cur+"，"+p;
@@ -1083,12 +1215,14 @@ function parseMulti(t, base, settings, ctx){
     var srcDate=s;
     var mm=s.match(/(?:改到|调整到|改期到|推迟到|提前到|时间改为|改为)\s*(.+)$/);
     if(mm) srcDate=mm[1];
-    var d=parseDate(srcDate,base);
-    if(!d.date) d=parseDate(s,base);
-    if(!d.date && lastDate) d={date:lastDate,text:""};
+    var d=parseActionDate(srcDate,base);
+    if(!d.date) d=parseActionDate(s,base);
+    if(isContextEventDate(s)) d={date:null,text:""};
+    if(!d.date && lastDate && !isContextEventDate(s) && !/^对了(?:老婆|老公)/.test(s)) d={date:lastDate,text:""};
     var perMatch=s.match(/(上午|早上|早晨|凌晨|中午|下午|午后|晚上|傍晚|今晚|今夜|明晚|昨晚|夜里|夜间|晚)/);
     if(perMatch) lastPeriod=perMatch[1];
     var tm=parseTime(s,lastPeriod);
+    if(!tm && /(还要|同天)/.test(s) && res.length) tm=res[res.length-1].time;
     // “请于7:40前”省略了日期，默认是收到通知当天；带“每天/每周”的周期任务不这样处理。
     if(!d.date && tm && /(前|之前|以前|截止)/.test(s) && !/(每天|每周|每星期|每学期|工作日)/.test(s)){
       d={date:new Date(base.getFullYear(),base.getMonth(),base.getDate()),text:""};
@@ -1112,6 +1246,8 @@ function parseMulti(t, base, settings, ctx){
   res=mergeTaskFragments(res);
   res=mergeClauseTasks(res);
   res=addPrepCompanions(res);
+  /* “周六去……，门票今晚先预约”按执行先后呈现，今晚的准备卡在前。 */
+  if(res.length===2 && res[0].date && res[1].date && res[0].date>res[1].date && /今晚/.test(res[1].raw)) res.reverse();
   var batch=res.length?uid():"";
   res.forEach(function(x){ x.batchId=batch; });
   return res;
@@ -1151,6 +1287,44 @@ function taskClauseCount(text, base){
   });
   return n;
 }
+/* ===== 规则注册表（纯文档数据，不参与运行时逻辑）=====
+   每条规则回答四个问题：属于哪阶段(stage)、解决什么、由哪些语料守护(cases)、何时引入(since)。
+   新增/修改规则时必须同步登记；cases 对应 tests/ 下的语料文件。 */
+var ARGUS_RULES=[
+  {id:"R001",stage:"S0",fn:"normalizeText",what:"全半角、零宽字符、空白归一",cases:"cases.json",since:"1.0"},
+  {id:"R002",stage:"S0",fn:"stripListNo/isListLine",what:"列表序号(1. 一、（二）)剥离与识别",cases:"cases_multi.json",since:"1.0"},
+  {id:"R010",stage:"S1",fn:"parseDate",what:"中文日期：明天/后天/周X/星期X/X月X日/单双周",cases:"cases.json",since:"1.0"},
+  {id:"R011",stage:"S1",fn:"parseTime",what:"时间点与上下午语境继承",cases:"cases.json",since:"1.0"},
+  {id:"R012",stage:"S1",fn:"parseTimeRange",what:"时间段(14:00-15:30)与endTime",cases:"cases.json",since:"1.0"},
+  {id:"R013",stage:"S1",fn:"parsePlace/cleanPlace",what:"地点抽取与lookahead补字",cases:"cases.json",since:"1.5"},
+  {id:"R014",stage:"S1",fn:"decideAnchor",what:"occur(发生)与due(截止)锚点判定",cases:"cases.json",since:"1.0"},
+  {id:"R015",stage:"S1",fn:"categoryOf",what:"类别推断(仅内部字段，不新增用户可见分类)",cases:"cases.json",since:"1.0"},
+  {id:"R016",stage:"S1",fn:"parsePlace/cleanPlace",what:"口语省略在/去的地点边界；4S店等字母数字场所保护",cases:"life_*.json",since:"2.0"},
+  {id:"R020",stage:"S2",fn:"findObj/objAllowed",what:"OBJ对象词典匹配与语境校验",cases:"cases.json",since:"1.0"},
+  {id:"R021",stage:"S2",fn:"isVerbTailOfLonger",what:"动词尾字防护：防止截断更长动词",cases:"cases_argus15.json",since:"1.5"},
+  {id:"R022",stage:"S2",fn:"titleOf/cleanTitleFallback",what:"标题提炼与兜底清理",cases:"cases.json",since:"1.0"},
+  {id:"R023",stage:"S2",fn:"spokenTitleSource",what:"口语标题保留背景对象与主动作，避免只留最后动词",cases:"life_*.json",since:"2.0"},
+  {id:"R030",stage:"S3",fn:"isTaskish",what:"子句是否构成任务",cases:"cases_multi.json",since:"1.0"},
+  {id:"R031",stage:"S3",fn:"parseNotice/isNotice",what:"单条通知解析与通知性判定",cases:"cases.json",since:"1.0"},
+  {id:"R032",stage:"S3",fn:"stripSignature",what:"落款签名剥离",cases:"cases.json",since:"1.0"},
+  {id:"R033",stage:"S3",fn:"LIFE_ACTION/hasLifeIntent",what:"通用生活动作+口语意图双信号；学校正式语境护栏",cases:"life_*.json",since:"2.0"},
+  {id:"R034",stage:"S3",fn:"parseActionDate/isContextEventDate",what:"动作分句日期优先、背景事件日期剥离、明确期限回判",cases:"life_*.json",since:"2.0"},
+  {id:"R040",stage:"S4",fn:"addPrepCompanions",what:"前置随行事项并入主任务",cases:"cases_multi.json",since:"1.0"},
+  {id:"R041",stage:"S4",fn:"shouldMergeTasks/absorbTask",what:"相邻碎片合并判定",cases:"cases_multi.json",since:"1.0"},
+  {id:"R042",stage:"S4",fn:"mergeTaskFragments",what:"“以及”退出拆任务等碎片整合",cases:"cases_multi.json",since:"1.5"},
+  {id:"R043",stage:"S4",fn:"isLeadToNextTask",what:"背景状态+后续动作合一：电费该交了/今晚交",cases:"life_*.json",since:"2.0"},
+  {id:"R044",stage:"S4",fn:"isStandaloneLifeEvent/shouldMergeTasks",what:"区分独立同日任务与随行准备，防止过度合并",cases:"life_*.json",since:"2.0"},
+  {id:"R045",stage:"S4",fn:"absorbTask",what:"合并时保留主事件标题；接人/期限准备采用主动作",cases:"life_*.json",since:"2.0"},
+  {id:"R050",stage:"S5",fn:"isDeliveryClause",what:"交付从句识别(发给我/提交给)",cases:"cases_argus15.json",since:"1.5"},
+  {id:"R051",stage:"S5",fn:"mergeClauseTasks①",what:"交付从句回收：期限并回主任务",cases:"cases_argus15.json",since:"1.5"},
+  {id:"R052",stage:"S5",fn:"isPreambleClause/isPreambleTask",what:"寒暄铺垫识别",cases:"cases_argus15.json",since:"1.5"},
+  {id:"R053",stage:"S5",fn:"mergeClauseTasks②/stripPreamblePrefix",what:"寒暄回收：写入后续任务备注",cases:"cases_argus15.json",since:"1.5"},
+  {id:"R060",stage:"S6",fn:"parseMulti",what:"多任务切分编排",cases:"cases_multi.json",since:"1.0"},
+  {id:"R061",stage:"S6",fn:"parseAll",what:"对外唯一入口",cases:"全部",since:"1.0"},
+  {id:"R062",stage:"S6",fn:"parseMulti",what:"口语自我纠正、并列事项共享日期展开",cases:"life_mx.json",since:"2.0"},
+  {id:"R063",stage:"S6",fn:"parseMulti",what:"无标点长句补边界；顺便/然后前的日期片段传递",cases:"life_*.json",since:"2.0"},
+  {id:"R064",stage:"S6",fn:"parseMulti",what:"期限续句并回主任务；准备卡按执行先后排序",cases:"life_*.json",since:"2.0"}
+];
 /* ================= PARSER END ================= */
 </script>
 <script>
@@ -1268,8 +1442,8 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V1.9.4";
-var ARGUS_VERSION = "1.5";
+var APP_VERSION = "V2.0";
+var ARGUS_VERSION = "2.0";
 var state = {
   view:"home",
   quickMenu:false,
@@ -1577,20 +1751,23 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
-    ["内部整理","功能与外观完全不变：边缘滑动与长按共用同一套点击抑制守卫；日历与八日格统一使用同一个「今天」；新增发版脚本，缓存名随版本号自动同步。"]
+    ["阿耳戈斯 2.0","从学校群通知走向日常生活：带娃、电车、出游、家庭琐事都能解析。180 条生活语料验收全部通过，仍只保留优先级，不新增任务分类。"],
+    ["口语与语音长句","听懂夫妻间口头交代：背景与动作合一、无标点长句切分、自我纠正（“明天，不对，后天”）、并列事项共享日期，学校与生活混合消息也能拆开。"],
+    ["学校场景零回退","学校主测试、多任务、1.5 专项全部通过；60 条公开挑战语的召回、完整通过、字段与标题指标和 1.5 基线完全一致。"],
+    ["结构同步升级","解析器保持六阶段流水线，规则注册表扩充至 33 条。每条规则都有职责、守护语料和引入版本，后续优化不必在正则堆里考古。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">内部整理 · 无功能变化</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">阿耳戈斯 2.0 · 学校与生活双场景</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
 }
 function sheetArgus(){
   var logs=[
-    ["百眼全视","Argus，希腊神话中永不闭目的守望者。阿尔戈斯把群通知的每一层语义都看在眼里：寒暄、铺垫、要求、期限，一条都逃不掉。"],
-    ["零模型 · 全本地","不联网、不上传、不调用任何云端 AI。任务数据从不出你的手机，断网照样解析——隐私是绝对红线，不是功能。"],
-    ["任务粒度回判","1.5 的心脏：切完再合。「写一段感想，80字以内，明天下班前发给我」——开场白进备注，期限回主任务，一条通知只出一张卡。"],
-    ["百炼成钢","数百条真实通知淬炼，公文、群消息、口语、花式表达四路全量回归，每次发布零回归才放行。"],
-    ["时间语义","「明天放学前」「单双周第8周」「下周三中午」——中文时间表达的细微差别，一眼看穿。"]
+    ["百眼全视 · 生活之眼","Argus，希腊神话中永不闭目的守望者。2.0 睁开生活之瞳：学校通知、宝宝疫苗、电车保养、出游订票、家庭缴费——每一层语义都看在眼里。"],
+    ["零云端 · 全本地","不联网、不上传、不调用任何云端 AI。任务数据从不出你的手机，断网照样解析——隐私是绝对红线，不是功能。"],
+    ["口语复原术","「奶粉快没了，明天下班带两罐」「明天，不对，后天去儿保」——背景、动作、纠正、期限各归其位。不只找关键词，还会把口头交代重新整理成任务。"],
+    ["双域试炼","180 条带娃/电车/出游/家庭语料全部通过；学校主测试、多任务与 1.5 专项保持全绿，60 条公开挑战语指标与冻结基线一致。每次动模型，五套回归缺一不可。"],
+    ["三十三律 · 有籍可查","六阶段流水线、33 条登记规则。每条规则都写清职责、守护语料与出生版本——再复杂的判断，也不是来路不明的黑魔法。"]
   ];
   return sheetHead("阿耳戈斯 Argus "+ARGUS_VERSION+" · 模型档案")
     +'<div class="version-hero"><div class="version-big">Argus</div><div class="version-sub">阿耳戈斯 '+ARGUS_VERSION+' · 本地解析引擎</div></div>'
@@ -1601,7 +1778,7 @@ function sheetPaste(){
   var d=state.drafts;
   var body='';
   if(!d){
-    body='<textarea class="pastebox" id="pasteInput" aria-label="学校通知内容">'+esc(state.parseText)+'</textarea>'
+    body='<textarea class="pastebox" id="pasteInput" aria-label="通知或日常交代内容" placeholder="粘贴学校通知，或输入日常交代，例如：明天下班回来带两罐奶粉">'+esc(state.parseText)+'</textarea>'
       +'<div class="rowbtns"><button class="mini ghost" data-act="pasteClip">'+icon("clipboard",16)+'粘贴</button><button class="mini primary" data-act="doParse">'+icon("arrow",16)+'解析</button></div>';
   }else{
     var sel=state.draftSel||[];
