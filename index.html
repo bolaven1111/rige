@@ -986,6 +986,16 @@ function absorbTask(a,b){
 function isStandaloneLifeEvent(s){
   return LIFE_ACTION.test(s) || /(疫苗|儿保|体检|保养|讲座|随访|面试|保洁|聚餐|农家乐)/.test(s);
 }
+/* 并列枚举里的简短动作：“明天买菜，充电，交电费”。
+   只识别紧凑动作句；工具、背景、准备、交付与完成标记不算独立任务。 */
+function isCompactIndependentAction(s){
+  var x=cleanSegment(s);
+  if(!x || x.length>18 || /[，,]/.test(x)) return false;
+  if(/^(?:开|打|做|吃|买)完(?:以后|后)?$/.test(x)) return false;
+  if(/(可以|已经|先|提前|记得(?:看|说|开|带)|带上|也带|别|用|剪刀|报告|没了|坏了|该|一下|那天|同天|之前|以前|前把|出门前|说|约好|开始|结束|出来|看着|安排|如果|若|另行通知)/.test(x)) return false;
+  if(/把.*(?:充满|装好|加满)/.test(x)) return false;
+  return LIFE_ACTION.test(x) && !isPrevTaskCompanion(x) && !isDeliveryClause(x) && !isPreambleClause(x);
+}
 function shouldMergeTasks(prev,x){
   if(!prev || !x) return false;
   var s=String(x.raw||"").replace(/\s/g,"");
@@ -995,7 +1005,9 @@ function shouldMergeTasks(prev,x){
   if(isPrevTaskCompanion(s) && datesCompatible) return true;
   if(normCat(prev.category)==="个人" && /买/.test(x.raw) && /去/.test(prev.raw) && datesCompatible && !/(今晚|明天|后天)/.test(x.raw) && !parseTime(x.raw)) return true;
   var independentLife=normCat(prev.category)==="个人" && normCat(x.category)==="个人" && /(宝宝|我妈|社区医院|儿保|疫苗|保养|充电)/.test(prev.raw+" "+x.raw) && isStandaloneLifeEvent(prev.raw) && isStandaloneLifeEvent(x.raw);
-  if(prev.date && x.date && prev.date===x.date && prev.category===x.category && !independentLife &&
+  /* 两个紧凑动作句属于并列枚举，不能仅因同日同类再次合并。 */
+  var compactIndependent=isCompactIndependentAction(prev.raw) && isCompactIndependentAction(x.raw);
+  if(prev.date && x.date && prev.date===x.date && prev.category===x.category && !independentLife && !compactIndependent &&
      (!prev.time || !x.time || prev.time===x.time)) return true;
   return false;
 }
@@ -1150,6 +1162,10 @@ function parseMulti(t, base, settings, ctx){
   segs2.forEach(function(s){
     var parts=s.split(/[，,、]/).map(function(x){return x.trim();}).filter(Boolean);
     if(parts.length<=1){ out.push(s); return; }
+    /* 完整任务后的连续简短动作是并列枚举，直接保留各分句。
+       其他逗号句仍走原有判断，避免把说明与准备工作拆碎。 */
+    var compactEnum=isTaskish(parts[0],base) && parts.slice(1).every(isCompactIndependentAction);
+    if(compactEnum){ parts.forEach(function(p,i){ if(i>0 && !isTaskish(p,base)) p="你"+p; out.push(p); }); return; }
     var cur="", curHasWhen=false;
     parts.forEach(function(p){
       var hasDate=!!parseDate(p,base).date;
@@ -1313,7 +1329,7 @@ var ARGUS_RULES=[
   {id:"R041",stage:"S4",fn:"shouldMergeTasks/absorbTask",what:"相邻碎片合并判定",cases:"cases_multi.json",since:"1.0"},
   {id:"R042",stage:"S4",fn:"mergeTaskFragments",what:"“以及”退出拆任务等碎片整合",cases:"cases_multi.json",since:"1.5"},
   {id:"R043",stage:"S4",fn:"isLeadToNextTask",what:"背景状态+后续动作合一：电费该交了/今晚交",cases:"life_*.json",since:"2.0"},
-  {id:"R044",stage:"S4",fn:"isStandaloneLifeEvent/shouldMergeTasks",what:"区分独立同日任务与随行准备，防止过度合并",cases:"life_*.json",since:"2.0"},
+  {id:"R044",stage:"S4",fn:"isStandaloneLifeEvent/shouldMergeTasks",what:"区分独立同日任务与随行准备；紧凑并列动作不被同日同类合并",cases:"life_*.json; cases_multitask_regression.json",since:"2.0.1"},
   {id:"R045",stage:"S4",fn:"absorbTask",what:"合并时保留主事件标题；接人/期限准备采用主动作",cases:"life_*.json",since:"2.0"},
   {id:"R050",stage:"S5",fn:"isDeliveryClause",what:"交付从句识别(发给我/提交给)",cases:"cases_argus15.json",since:"1.5"},
   {id:"R051",stage:"S5",fn:"mergeClauseTasks①",what:"交付从句回收：期限并回主任务",cases:"cases_argus15.json",since:"1.5"},
@@ -1322,7 +1338,7 @@ var ARGUS_RULES=[
   {id:"R060",stage:"S6",fn:"parseMulti",what:"多任务切分编排",cases:"cases_multi.json",since:"1.0"},
   {id:"R061",stage:"S6",fn:"parseAll",what:"对外唯一入口",cases:"全部",since:"1.0"},
   {id:"R062",stage:"S6",fn:"parseMulti",what:"口语自我纠正、并列事项共享日期展开",cases:"life_mx.json",since:"2.0"},
-  {id:"R063",stage:"S6",fn:"parseMulti",what:"无标点长句补边界；顺便/然后前的日期片段传递",cases:"life_*.json",since:"2.0"},
+  {id:"R063",stage:"S6",fn:"parseMulti/isCompactIndependentAction",what:"无标点长句补边界；连续省略日期的紧凑动作枚举拆分为多任务",cases:"life_*.json; cases_multitask_regression.json",since:"2.0.1"},
   {id:"R064",stage:"S6",fn:"parseMulti",what:"期限续句并回主任务；准备卡按执行先后排序",cases:"life_*.json",since:"2.0"}
 ];
 /* ================= PARSER END ================= */
@@ -1442,8 +1458,8 @@ async function deleteStoredTask(id){
   catch(e){ toast("删除失败：请检查存储空间后重试"); return false; }
 }
 
-var APP_VERSION = "V2.0";
-var ARGUS_VERSION = "2.0";
+var APP_VERSION = "V2.0.1";
+var ARGUS_VERSION = "2.0.1";
 var state = {
   view:"home",
   quickMenu:false,
@@ -1751,6 +1767,7 @@ function sheetHead(title){
 }
 function sheetVersion(){
   var logs=[
+    ["多任务修复 · 说几件就是几张卡","修复从 1.5 就存在的省略日期合并问题：“明天买菜，充电，交电费”现在会拆成 3 张卡，不再吞成一张。同日、不同时段的生活安排也各自保留；交付期限、工具说明和同一事件准备仍会正确合并。新增 11 条多任务专项，与学校、生活、挑战基线共同全量通过。"],
     ["V2.0 · 日格走进生活","这是日格的一小步，也是阿耳戈斯的一大步。从学校群通知到带娃、电车、出游与家庭琐事，日格不再只懂工作，也开始懂你真实的一天。180 条生活语料验收全部通过，生活场景识别率从 24.4% 跃升至 100%。"],
     ["听懂人话，而不只是通知","夫妻间的口头交代、没有标点的语音长句、临时改口的“明天，不对，后天”，都能被重新整理成清楚的八日格。背景与动作合一，独立事项分开，学校与生活混在一段话里也能各归其位。"],
     ["Argus 1.5 → 2.0 · 从会切到真正会整理","1.5 学会合并回判：寒暄进备注、期限回主任务，一条通知不再碎成一叠卡；2.0 更进一步，听懂口语里的背景、纠正与执行日期。不是把关键词越堆越多，而是让中文表达真正有了秩序。"],
@@ -1759,7 +1776,7 @@ function sheetVersion(){
     ["骄傲，更要有证据","学校主测试、多任务、1.5 专项与生活语料全部通过，60 条公开挑战语核心指标与冻结基线一致。六阶段流水线、33 条登记规则，每一次进化都有来路，每一次发布都有回归作证。"]
   ];
   return sheetHead(APP_VERSION+" 更新详情")
-    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">从八日格，到你的生活中枢</div></div>'
+    +'<div class="version-hero"><div class="version-big">'+APP_VERSION+'</div><div class="version-sub">多任务修复 · 一个都不漏</div></div>'
     +logs.map(function(x){ return '<div class="version-log">'+icon("check",17)+'<div><div class="version-log-title">'+x[0]+'</div><div class="version-log-text">'+x[1]+'</div></div></div>'; }).join("")
     +'<div class="version-foot">从八日格出发，把时间还给生活。<br>仍然无云同步。删除主屏图标或清除浏览器网站数据前，请先分享备份。</div>';
 }
@@ -1769,7 +1786,7 @@ function sheetArgus(){
     ["一双眼，看见学校与生活的全部","学校通知、宝宝儿保、电车保养、出游订票、家庭缴费——曾经散落在聊天和记忆里的小事，如今都能被看见、被理解、被放回时间应在的位置。一个引擎，两个世界，一样清醒。"],
     ["我们让它真正听懂中文","「奶粉快没了，明天下班带两罐」「明天，不对，后天去儿保」——它听得出哪句是背景，哪个才是动作；听得懂改口，也分得清出发日期与准备期限。不是机械寻找关键词，而是把人说的话，重新整理成人要做的事。"],
     ["180 次发问，180 次回答","从 1.5 的 24.4%，到 2.0 的 100%：带娃 50、电车 35、出游 40、家庭 40、混合与干扰 15，全部通过。这不是对万能的承诺，而是一次有语料、有评分器、有失败清单的真实进化。"],
-    ["走向新生活，也没有忘记来路","学校主测试、多任务与 1.5 专项保持全绿，60 条公开挑战语核心指标与冻结基线一致。新的能力，不以牺牲旧的可靠为代价；每次动模型，五套回归缺一不可。"],
+    ["走向新生活，也没有忘记来路","学校主测试、多任务与 1.5 专项保持全绿，60 条公开挑战语核心指标与冻结基线一致。新的能力，不以牺牲旧的可靠为代价；每次动模型，全量回归缺一不可。"],
     ["零云端，是我们最骄傲的底气","不联网、不上传、不调用任何云端 AI。没有遥远的数据中心，没有隐藏的订阅费用，任务数据从不出你的手机。断网时，它依然清醒；沉默时，它依然可靠。"],
     ["三十三律 · 复杂，但绝不混沌","六阶段流水线、33 条登记规则，每条都有职责、守护语料与出生版本。百眼全视，不靠黑魔法；每一次判断都有来路，每一次成长都有据可查。"]
   ];
